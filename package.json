@@ -1,5 +1,5 @@
 {
-  "name": "primitive-images",
+  "name": "kasane",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,11 +8,11 @@
   "author": "kariyamaso",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kariyamaso/primitiveimages.git"
+    "url": "https://github.com/kariyamaso/kasane.git"
   },
-  "homepage": "https://kariyamaso.github.io/primitiveimages/",
+  "homepage": "https://kariyamaso.github.io/kasane/",
   "bugs": {
-    "url": "https://github.com/kariyamaso/primitiveimages/issues"
+    "url": "https://github.com/kariyamaso/kasane/issues"
   },
   "keywords": [
     "image-approximation",

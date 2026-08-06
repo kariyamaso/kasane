@@ -668,7 +668,7 @@ function exportSvg() {
 function exportJson() {
   const n = Number(el.scrub.value)
   const payload = {
-    generator: 'primitive-images',
+    generator: 'kasane',
     config: readConfig(),
     canvas: { width: state.compW, height: state.compH },
     background: state.bg,

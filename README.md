@@ -1,11 +1,12 @@
-# Primitive Images
+# Kasane 襲
 
-**幾何プリミティブによる段階的画像近似 / Geometric Primitive-Based Image Approximation**
+**Layered geometric image approximation in the browser**
+**幾何プリミティブを重ねて画像を構成する / Geometric Primitive-Based Image Approximation**
 
-[![CI](https://github.com/kariyamaso/primitiveimages/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/primitiveimages/actions/workflows/ci.yml)
+[![CI](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Demo: https://kariyamaso.github.io/primitiveimages/**
+**Demo: https://kariyamaso.github.io/kasane/**
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,
@@ -13,6 +14,14 @@
 > annealing, closed-form optimal color solving, and scanline-based incremental
 > SSE evaluation — all running in a Web Worker. Exports PNG / SVG / JSON.
 > Fully client-side, no server required.
+
+**Kasane（襲／かさね）** は、半透明の衣を何枚も重ねて合成色を作る平安期の色彩技法
+「[襲の色目](https://ja.wikipedia.org/wiki/%E8%A5%B2%E3%81%AE%E8%89%B2%E7%9B%AE)」に由来します。
+半透明の幾何図形を重ね、パレットで色を統制しながら像を立ち上げるこのアプリの動作そのものです。
+
+*The name comes from* kasane no irome, *the Heian-era practice of layering
+translucent garments so that the overlapping colors form a new composite hue —
+which is, quite literally, what this program does.*
 
 基準画像を、三角形・四角形・円・正多角形・線分・ベジェ曲線などの単純図形を
 半透明で重ねることによって段階的に構成する Web アプリケーション。
@@ -23,6 +32,31 @@
 Î_N(x, y) = Composite(P_1, P_2, …, P_N)
 P_i       = (形状, 位置, 大きさ, 回転, 色, α)
 ```
+
+## 既存実装との差分
+
+同じ系譜の実装との比較。**過大に主張しないために、相手側の機能は公式 README・UI 定義・API
+ドキュメントで確認できた範囲のみを記載している**（「なし」は「文書化された機能として確認できなかった」の意）。
+
+| | [fogleman/primitive](https://github.com/fogleman/primitive) | [Geometrize](https://github.com/Tw1ddle/geometrize) | [primitive.js](https://github.com/ondras/primitive.js) | **Kasane** |
+| --- | --- | --- | --- | --- |
+| 形態 | CLI (Go) | デスクトップ GUI (Qt) + Haxe ライブラリ | ブラウザ | ブラウザ |
+| 図形 | 8種 + combo | 9種 | 4種 | 10種 |
+| 色 | 最適色（自動） | 最適色（自動） | 最適色（自動、背景のみ固定色指定可） | 最適色 **+ グラデーション / 固定パレット / モノクロ階調への射影、元色ブレンド** |
+| 図形サイズの制約 | なし | GUI にはなし（ChaiScript のシェイプミューテータを編集すれば可能） | なし | **GUI スライダーで外接円半径の下限・上限** |
+| 中間状態 | `-nth` で連番出力 / アニメ GIF | ステップ実行・連番 PNG・アニメ GIF | 逐次表示のみ | **全ステップを保持し、双方向にスクラブ・再生** |
+| 配置範囲の制約 | なし | あり（Shape Bounding Area） | なし | なし |
+| 拡張 | ソース改変 | **ChaiScript フック多数**（誤差関数・変異・各種コールバック） | ソース改変 | ソース改変 |
+| 並列化 | あり (`-j`) | あり (`maxThreads`) | なし | なし（Worker 1本） |
+| 出力 | PNG/JPG/SVG/GIF | PNG/連番PNG/SVG/GIF/JSON/HTML5 canvas/WebGL | PNG/SVG | PNG/SVG/JSON |
+
+**本質的な機能差は「配色の統制」の一点**。閉形式で求めた最適色を、ユーザー指定の色空間へ射影する
+層を挟むことで、忠実度を保ったまま作風だけを差し替えられる。上記 4 実装のいずれにも
+パレット・グラデーション制約は文書化されていない（Geometrize は `customEnergyFunction`
+スクリプトフックがあるため、書けば近いことは実現できる）。
+
+サイズ範囲と中間状態のスクラブは、機能の有無ではなく **GUI で直に触れることの差**（Geometrize は
+スクリプト編集、primitive はフラグと外部ツール）。拡張性と並列化では Geometrize が明確に上。
 
 ## この手法の呼び名
 
