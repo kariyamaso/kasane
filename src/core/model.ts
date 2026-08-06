@@ -12,8 +12,8 @@
 
 import { Rng, clamp } from './rng'
 import { ScanlineBuffer } from './raster'
-import { ColorConstraint, averageColor, computeOptimalColor, hexToRgb } from './color'
-import { drawLines, fullSSE, partialSSE, rmse } from './score'
+import { ColorConstraint, averageColor, hexToRgb } from './color'
+import { drawLines, fullSSE, lineStats, rmse, sseFromStats } from './score'
 import { mutateShape, randomShape, shapeScanlines, type SizeRange } from './shapes'
 import type { Config, RGB, Shape, ShapeRecord } from './types'
 
@@ -41,6 +41,7 @@ export class Model {
   private rng: Rng
   private constraint: ColorConstraint
   private buf = new ScanlineBuffer()
+  private stats = new Float64Array(5)
   private sse: number
   private pixels: number
   /** サイズ範囲は「長辺に対する比率」で受け取り、px に直して保持する */
@@ -110,9 +111,17 @@ export class Model {
   private evaluate(shape: Shape, alpha: number): State | null {
     shapeScanlines(shape, this.w, this.h, this.buf)
     if (this.buf.count === 0) return null
-    const raw = computeOptimalColor(this.target, this.current, this.buf, alpha, this.w)
+    const n = lineStats(this.target, this.current, this.buf, alpha, this.w, this.stats)
+    if (n === 0) return null
+    // 最適色 s* = Σe / (n·α) を統計量から閉形式で得る
+    const inv = 255 / (alpha * n)
+    const raw = {
+      r: clamp(this.stats[0] * inv, 0, 255),
+      g: clamp(this.stats[1] * inv, 0, 255),
+      b: clamp(this.stats[2] * inv, 0, 255),
+    }
     const color = this.constraint.apply(raw)
-    const sse = partialSSE(this.target, this.current, this.buf, color, alpha, this.w, this.sse)
+    const sse = sseFromStats(this.stats, n, color, alpha, this.sse)
     return { shape, alpha, color, sse }
   }
 

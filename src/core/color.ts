@@ -1,13 +1,13 @@
 /**
  * 配色モジュール
  *
- * 「その図形をどの色で塗るのが最も誤差を減らすか」は解析的に解ける(computeOptimalColor)。
+ * 「その図形をどの色で塗るのが最も誤差を減らすか」は解析的に解ける
+ * (score.ts の lineStats が集める誤差統計量から閉形式で得る)。
  * そのうえで、ユーザーが指定した色空間(グラデーション / 固定パレット / モノクロ階調)へ
  * 射影することで、忠実度を保ちながら作風をコントロールできる。
  */
 
 import type { ColorConfig, RGB } from './types'
-import { ScanlineBuffer } from './raster'
 
 export function hexToRgb(hex: string): RGB {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
@@ -23,45 +23,6 @@ export function rgbToHex({ r, g, b }: RGB): string {
 
 export function luma(r: number, g: number, b: number): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-/**
- * 図形が覆う領域について、合成後に元画像へ最も近づく塗り色を閉形式で求める。
- *   result = current*(1-a) + s*a  を  result ≈ target  にしたいので
- *   s = current + (target - current) / a
- * これを被覆画素で平均する。
- */
-export function computeOptimalColor(
-  target: Uint8ClampedArray,
-  current: Uint8ClampedArray,
-  lines: ScanlineBuffer,
-  alpha: number,
-  w: number,
-): RGB {
-  const a = alpha / 255
-  let rs = 0
-  let gs = 0
-  let bs = 0
-  let count = 0
-  const d = lines.data
-  for (let s = 0; s < lines.count; s++) {
-    const y = d[s * 3]
-    const x1 = d[s * 3 + 1]
-    const x2 = d[s * 3 + 2]
-    let i = (y * w + x1) * 4
-    for (let x = x1; x <= x2; x++, i += 4) {
-      const cr = current[i]
-      const cg = current[i + 1]
-      const cb = current[i + 2]
-      rs += cr + (target[i] - cr) / a
-      gs += cg + (target[i + 1] - cg) / a
-      bs += cb + (target[i + 2] - cb) / a
-      count++
-    }
-  }
-  if (count === 0) return { r: 0, g: 0, b: 0 }
-  const cl = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v)
-  return { r: cl(rs / count), g: cl(gs / count), b: cl(bs / count) }
 }
 
 /** 平均色(背景の初期値に使う) */

@@ -131,15 +131,21 @@ export const SHAPE_LABELS: Record<ShapeKind, string> = {
 
 /* ---- Worker メッセージ ---- */
 
+/**
+ * Worker はページ読み込み時に 1 つだけ生成し、実行のたびに init で使い回す
+ * (クリック時に new Worker するとスクリプト取得+コンパイルがラグになるため)。
+ * gen は実行の世代番号。再実行・リセット後に届く前世代のメッセージを
+ * メインスレッド側で無視するために全メッセージへ載せる。
+ */
 export type ToWorker =
-  | { type: 'init'; width: number; height: number; pixels: ArrayBuffer; config: Config }
+  | { type: 'init'; gen: number; width: number; height: number; pixels: ArrayBuffer; config: Config }
   | { type: 'run' }
   | { type: 'pause' }
   | { type: 'abort' }
 
 export type FromWorker =
-  | { type: 'ready'; bg: RGB; score: number }
-  | { type: 'step'; index: number; record: ShapeRecord; elapsedMs: number }
-  | { type: 'done'; total: number; elapsedMs: number }
-  | { type: 'paused' }
-  | { type: 'error'; message: string }
+  | { type: 'ready'; gen: number; bg: RGB; score: number }
+  | { type: 'step'; gen: number; index: number; record: ShapeRecord; elapsedMs: number }
+  | { type: 'done'; gen: number; total: number; elapsedMs: number }
+  | { type: 'paused'; gen: number }
+  | { type: 'error'; gen: number; message: string }

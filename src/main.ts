@@ -107,7 +107,23 @@ const state = {
 const enabledShapes = new Set<ShapeKind>(['triangle'])
 const enabledSides = new Set<number>([5, 6])
 let stops: string[] = [...DEFAULT_CONFIG.color.stops]
+
+/**
+ * Worker はページ読み込み時に 1 つ生成して使い回す。
+ * クリック時に生成するとスクリプトの取得+コンパイル(遅い回線では 1 RTT 以上)が
+ * 「実行→最初の図形」のラグとして毎回のしかかるため。
+ * 実行の世代 gen が一致しないメッセージ(リセット・再実行前のもの)は無視する。
+ */
 let worker: Worker | null = null
+let workerGen = 0
+
+function ensureWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(new URL('./core/worker.ts', import.meta.url), { type: 'module' })
+    worker.onmessage = (ev: MessageEvent<FromWorker>) => onWorkerMessage(ev.data)
+  }
+  return worker
+}
 
 const outCtx = el.outCanvas.getContext('2d')!
 const srcCtx = el.srcCanvas.getContext('2d')!
@@ -329,6 +345,7 @@ async function loadFromBlob(blob: Blob, name: string) {
   el.imgInfo.textContent = `${bmp.width} × ${bmp.height} px`
   el.outW.value = String(Math.min(1600, Math.max(256, bmp.width)))
   drawTarget()
+  computePixels(Number(el.resolution.value)) // 実行時のラグを避けるため先回りで縮小
   resetRun()
   el.run.disabled = false
   el.reset.disabled = false
@@ -344,9 +361,17 @@ function drawTarget() {
   srcCtx.drawImage(bmp, 0, 0, el.srcCanvas.width, el.srcCanvas.height)
 }
 
-/** 内部計算用に縮小した RGBA を取り出す */
+/**
+ * 内部計算用に縮小した RGBA を取り出す。
+ * 大きな写真では drawImage が重いので、画像読み込み時・解像度変更時に先回りして
+ * 計算し、(bitmap, resolution) が変わらない限り実行ボタンの経路では再計算しない。
+ */
+let pixelsBitmap: ImageBitmap | null = null
+let pixelsRes = 0
+
 function computePixels(resolution: number) {
   const bmp = state.bitmap!
+  if (state.targetPixels && pixelsBitmap === bmp && pixelsRes === resolution) return
   const s = resolution / Math.max(bmp.width, bmp.height)
   const w = Math.max(8, Math.round(bmp.width * s))
   const h = Math.max(8, Math.round(bmp.height * s))
@@ -358,6 +383,8 @@ function computePixels(resolution: number) {
   state.compW = w
   state.compH = h
   state.targetPixels = data
+  pixelsBitmap = bmp
+  pixelsRes = resolution
 }
 
 function makeSample(): Blob | Promise<Blob> {
@@ -397,9 +424,8 @@ function makeSample(): Blob | Promise<Blob> {
 /* ------------------------------------------------------------------ */
 
 function resetRun() {
+  workerGen++ // 以後、前の実行のメッセージはすべて無視される
   worker?.postMessage({ type: 'abort' } satisfies ToWorker)
-  worker?.terminate()
-  worker = null
   state.records = []
   state.running = false
   state.follow = true
@@ -454,12 +480,13 @@ function start() {
   el.scrub.max = '0'
   el.scrub.value = '0'
 
-  worker = new Worker(new URL('./core/worker.ts', import.meta.url), { type: 'module' })
-  worker.onmessage = (ev: MessageEvent<FromWorker>) => onWorkerMessage(ev.data)
+  const w = ensureWorker()
+  workerGen++
   const copy = state.targetPixels!.slice()
-  worker.postMessage(
+  w.postMessage(
     {
       type: 'init',
+      gen: workerGen,
       width: state.compW,
       height: state.compH,
       pixels: copy.buffer,
@@ -467,13 +494,42 @@ function start() {
     } satisfies ToWorker,
     [copy.buffer],
   )
-  worker.postMessage({ type: 'run' } satisfies ToWorker)
+  w.postMessage({ type: 'run' } satisfies ToWorker)
   state.running = true
   el.run.textContent = '一時停止'
   el.reset.disabled = false
 }
 
+/** step は高頻度で届くので、DOM の統計表示はフレームごとにまとめて更新する */
+let statsScheduled = false
+function scheduleStats() {
+  if (statsScheduled) return
+  statsScheduled = true
+  requestAnimationFrame(() => {
+    statsScheduled = false
+    const n = state.records.length
+    if (n === 0) return
+    el.scrub.max = String(n)
+    el.scrub.disabled = false
+    el.play.disabled = false
+    el.expPng.disabled = false
+    el.expSvg.disabled = false
+    el.expJson.disabled = false
+    if (state.follow) {
+      const rec = state.records[n - 1]
+      el.scrub.value = String(n)
+      el.scrubLabel.textContent = String(n)
+      el.statStep.textContent = String(n)
+      el.statRmse.textContent = rec.score.toFixed(4)
+      el.statSim.textContent = `${((1 - rec.score) * 100).toFixed(2)}%`
+      el.statTime.textContent = fmtTime(state.elapsed)
+      if (state.view === 'diff') renderView()
+    }
+  })
+}
+
 function onWorkerMessage(msg: FromWorker) {
+  if (msg.gen !== workerGen) return // リセット・再実行前の実行から届いた遅延メッセージ
   switch (msg.type) {
     case 'ready':
       state.bg = msg.bg
@@ -483,24 +539,11 @@ function onWorkerMessage(msg: FromWorker) {
     case 'step': {
       state.records.push(msg.record)
       state.elapsed = msg.elapsedMs
-      el.scrub.max = String(state.records.length)
-      el.scrub.disabled = false
-      el.play.disabled = false
-      el.expPng.disabled = false
-      el.expSvg.disabled = false
-      el.expJson.disabled = false
-      if (state.follow) {
-        el.scrub.value = String(state.records.length)
-        if (state.view !== 'diff' && state.view !== 'target') {
-          drawRecord(outCtx, msg.record, state.scale)
-        }
-        el.scrubLabel.textContent = String(state.records.length)
-        el.statStep.textContent = String(state.records.length)
-        el.statRmse.textContent = msg.record.score.toFixed(4)
-        el.statSim.textContent = `${((1 - msg.record.score) * 100).toFixed(2)}%`
-        el.statTime.textContent = fmtTime(msg.elapsedMs)
-        if (state.view === 'diff' && state.records.length % 10 === 0) renderView()
+      // キャンバスへは即時に追記(インクリメンタル描画)、DOM 統計は rAF でまとめる
+      if (state.follow && state.view !== 'diff' && state.view !== 'target') {
+        drawRecord(outCtx, msg.record, state.scale)
       }
+      scheduleStats()
       break
     }
     case 'done':
@@ -732,7 +775,10 @@ el.addStop.onclick = (e) => {
 for (const input of [el.alpha, el.blend, el.temp]) input.oninput = syncOutputs
 el.sizeMin.oninput = () => syncSizeUi('min')
 el.sizeMax.oninput = () => syncSizeUi('max')
-el.resolution.addEventListener('change', () => syncSizeUi())
+el.resolution.addEventListener('change', () => {
+  syncSizeUi()
+  if (state.bitmap) computePixels(Number(el.resolution.value)) // 実行前に先回りで縮小
+})
 el.expPng.onclick = exportPng
 el.expSvg.onclick = exportSvg
 el.expJson.onclick = exportJson
@@ -742,3 +788,4 @@ buildChips()
 buildStops()
 buildPresets()
 syncColorUi()
+ensureWorker() // ページ読み込み時にワーカーを起動しておき、実行ボタンのラグをなくす

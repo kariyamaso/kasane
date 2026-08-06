@@ -18,8 +18,10 @@ import {
   ellipseScanlines,
   polygonScanlines,
   quadBezierPath,
+  quadBezierPathInto,
   rectScanlines,
   strokeOutline,
+  strokeOutlineInto,
 } from './raster'
 import type { Shape, ShapeKind } from './types'
 
@@ -347,19 +349,26 @@ function constrainRadial(shape: Shape, minR: number, maxR: number): Shape {
 
 const ELLIPSE_SEGMENTS = 40
 
+// 最適化ループでは 1 候補ごとにラスタライズするので、点列生成の配列アロケーションを
+// 避けるためのスクラッチ領域(Worker 内で単一スレッド利用なので共有してよい)
+const pathBuf = new Float64Array(64) // 折れ線(ベジェ離散化で最大 17 点)
+const polyBuf = new Float64Array(256) // 輪郭ポリゴン(最大: ベジェのストローク 34 点)
+
 export function shapeScanlines(shape: Shape, w: number, h: number, out: ScanlineBuffer): void {
   out.reset()
   const p = shape.p
   switch (shape.k) {
     case 'triangle':
-    case 'quad':
-      polygonScanlines(p, w, h, out)
+    case 'quad': {
+      for (let i = 0; i < p.length; i++) polyBuf[i] = p[i]
+      polygonScanlines(polyBuf, w, h, out, p.length >> 1)
       break
+    }
     case 'rect':
       rectScanlines(p[0], p[1], p[2], p[3], w, h, out)
       break
     case 'rotrect':
-      polygonScanlines(rotRectPoints(p), w, h, out)
+      polygonScanlines(polyBuf, w, h, out, rotRectPointsInto(p, polyBuf))
       break
     case 'ellipse':
       ellipseScanlines(p[0], p[1], p[2], p[3], w, h, out)
@@ -368,66 +377,84 @@ export function shapeScanlines(shape: Shape, w: number, h: number, out: Scanline
       ellipseScanlines(p[0], p[1], p[2], p[2], w, h, out)
       break
     case 'rotellipse':
-      polygonScanlines(rotEllipsePoints(p, ELLIPSE_SEGMENTS), w, h, out)
+      polygonScanlines(polyBuf, w, h, out, rotEllipsePointsInto(p, ELLIPSE_SEGMENTS, polyBuf))
       break
     case 'regular':
-      polygonScanlines(regularPoints(p), w, h, out)
+      polygonScanlines(polyBuf, w, h, out, regularPointsInto(p, polyBuf))
       break
     case 'line':
-      polygonScanlines(strokeOutline([p[0], p[1], p[2], p[3]], p[4]), w, h, out)
+      pathBuf[0] = p[0]
+      pathBuf[1] = p[1]
+      pathBuf[2] = p[2]
+      pathBuf[3] = p[3]
+      polygonScanlines(polyBuf, w, h, out, strokeOutlineInto(pathBuf, 2, p[4], polyBuf))
       break
-    case 'bezier':
-      polygonScanlines(
-        strokeOutline(quadBezierPath(p[0], p[1], p[2], p[3], p[4], p[5]), p[6]),
-        w,
-        h,
-        out,
-      )
+    case 'bezier': {
+      const n = quadBezierPathInto(p[0], p[1], p[2], p[3], p[4], p[5], 16, pathBuf)
+      polygonScanlines(polyBuf, w, h, out, strokeOutlineInto(pathBuf, n, p[6], polyBuf))
       break
+    }
   }
 }
 
-export function rotRectPoints(p: number[]): number[] {
+function rotRectPointsInto(p: number[], out: Float64Array): number {
   const [cx, cy, rw, rh, a] = p
   const ca = Math.cos(a)
   const sa = Math.sin(a)
   const hw = rw / 2
   const hh = rh / 2
-  const out: number[] = []
+  let m = 0
   for (const [ox, oy] of [
     [-hw, -hh],
     [hw, -hh],
     [hw, hh],
     [-hw, hh],
   ]) {
-    out.push(cx + ox * ca - oy * sa, cy + ox * sa + oy * ca)
+    out[m * 2] = cx + ox * ca - oy * sa
+    out[m * 2 + 1] = cy + ox * sa + oy * ca
+    m++
   }
-  return out
+  return m
 }
 
-export function rotEllipsePoints(p: number[], segments: number): number[] {
+function rotEllipsePointsInto(p: number[], segments: number, out: Float64Array): number {
   const [cx, cy, rx, ry, a] = p
   const ca = Math.cos(a)
   const sa = Math.sin(a)
-  const out: number[] = []
   for (let i = 0; i < segments; i++) {
     const t = (i / segments) * Math.PI * 2
     const ox = Math.cos(t) * rx
     const oy = Math.sin(t) * ry
-    out.push(cx + ox * ca - oy * sa, cy + ox * sa + oy * ca)
+    out[i * 2] = cx + ox * ca - oy * sa
+    out[i * 2 + 1] = cy + ox * sa + oy * ca
   }
-  return out
+  return segments
+}
+
+function regularPointsInto(p: number[], out: Float64Array): number {
+  const [cx, cy, r, a, nRaw] = p
+  const n = Math.max(3, Math.round(nRaw))
+  for (let i = 0; i < n; i++) {
+    const t = a + (i / n) * Math.PI * 2
+    out[i * 2] = cx + Math.cos(t) * r
+    out[i * 2 + 1] = cy + Math.sin(t) * r
+  }
+  return n
+}
+
+export function rotRectPoints(p: number[]): number[] {
+  const buf = new Float64Array(8)
+  return Array.from(buf.subarray(0, rotRectPointsInto(p, buf) * 2))
+}
+
+export function rotEllipsePoints(p: number[], segments: number): number[] {
+  const buf = new Float64Array(segments * 2)
+  return Array.from(buf.subarray(0, rotEllipsePointsInto(p, segments, buf) * 2))
 }
 
 export function regularPoints(p: number[]): number[] {
-  const [cx, cy, r, a, nRaw] = p
-  const n = Math.max(3, Math.round(nRaw))
-  const out: number[] = []
-  for (let i = 0; i < n; i++) {
-    const t = a + (i / n) * Math.PI * 2
-    out.push(cx + Math.cos(t) * r, cy + Math.sin(t) * r)
-  }
-  return out
+  const buf = new Float64Array(Math.max(3, Math.round(p[4])) * 2)
+  return Array.from(buf.subarray(0, regularPointsInto(p, buf) * 2))
 }
 
 /** 図形の輪郭点列(描画・SVG 用)。楕円系は null を返し、呼び出し側で専用処理する。 */

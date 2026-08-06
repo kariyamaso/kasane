@@ -61,12 +61,13 @@ const orderBuf = new Int32Array(64)
  * pts は [x0,y0, x1,y1, ...] のフラット配列。
  */
 export function polygonScanlines(
-  pts: number[] | Float64Array,
+  pts: Float64Array, // 常に Float64Array で受ける(number[] と混在させると V8 がポリモーフィック化して遅くなる)
   w: number,
   h: number,
   out: ScanlineBuffer,
+  nPts = pts.length >> 1, // スクラッチバッファ利用時は有効な点数を明示する
 ): void {
-  const n = pts.length >> 1
+  const n = nPts
   if (n < 3) return
 
   let ymin = Infinity
@@ -176,12 +177,19 @@ export function rectScanlines(
   for (let y = y1; y <= y2; y++) out.push(y, x1, x2)
 }
 
-/** 折れ線を太さ width のストローク輪郭ポリゴンに変換する。 */
-export function strokeOutline(path: number[], width: number): number[] {
+/**
+ * 折れ線(n 点)を太さ width のストローク輪郭に変換して out へ書き込む。
+ * 左側の点を前から、右側の点を後ろから詰めるので out には 2n 点の閉ポリゴンができる。
+ * 戻り値は点数(= 2n)。ホットパスでの配列アロケーションを避けるための書き込み版。
+ */
+export function strokeOutlineInto(
+  path: ArrayLike<number>,
+  n: number,
+  width: number,
+  out: Float64Array,
+): number {
   const half = Math.max(0.35, width / 2)
-  const n = path.length >> 1
-  const left: number[] = []
-  const right: number[] = []
+  const last = 2 * n - 1
   for (let i = 0; i < n; i++) {
     // 進行方向(端点は隣接点から、中間点は前後の平均)
     let dx: number
@@ -199,15 +207,45 @@ export function strokeOutline(path: number[], width: number): number[] {
     const len = Math.hypot(dx, dy) || 1
     const nx = (-dy / len) * half
     const ny = (dx / len) * half
-    left.push(path[i * 2] + nx, path[i * 2 + 1] + ny)
-    right.push(path[i * 2] - nx, path[i * 2 + 1] - ny)
+    const x = path[i * 2]
+    const y = path[i * 2 + 1]
+    out[i * 2] = x + nx
+    out[i * 2 + 1] = y + ny
+    out[(last - i) * 2] = x - nx
+    out[(last - i) * 2 + 1] = y - ny
   }
-  const poly = left.slice()
-  for (let i = n - 1; i >= 0; i--) poly.push(right[i * 2], right[i * 2 + 1])
-  return poly
+  return 2 * n
 }
 
-/** 2 次ベジェを折れ線に離散化 */
+/** 折れ線を太さ width のストローク輪郭ポリゴンに変換する(描画・SVG 用の配列版)。 */
+export function strokeOutline(path: number[], width: number): number[] {
+  const n = path.length >> 1
+  const buf = new Float64Array(4 * n)
+  strokeOutlineInto(path, n, width, buf)
+  return Array.from(buf)
+}
+
+/** 2 次ベジェを折れ線に離散化して out へ書き込む。戻り値は点数(= segments+1)。 */
+export function quadBezierPathInto(
+  x0: number,
+  y0: number,
+  cx: number,
+  cy: number,
+  x1: number,
+  y1: number,
+  segments: number,
+  out: Float64Array,
+): number {
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments
+    const u = 1 - t
+    out[i * 2] = u * u * x0 + 2 * u * t * cx + t * t * x1
+    out[i * 2 + 1] = u * u * y0 + 2 * u * t * cy + t * t * y1
+  }
+  return segments + 1
+}
+
+/** 2 次ベジェを折れ線に離散化(描画・SVG 用の配列版) */
 export function quadBezierPath(
   x0: number,
   y0: number,
@@ -217,11 +255,7 @@ export function quadBezierPath(
   y1: number,
   segments = 16,
 ): number[] {
-  const pts: number[] = []
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments
-    const u = 1 - t
-    pts.push(u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1)
-  }
-  return pts
+  const buf = new Float64Array((segments + 1) * 2)
+  quadBezierPathInto(x0, y0, cx, cy, x1, y1, segments, buf)
+  return Array.from(buf)
 }
