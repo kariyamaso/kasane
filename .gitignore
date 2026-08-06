@@ -1,5 +1,7 @@
 node_modules/
 dist/
+tmp/
+patent/
 .DS_Store
 *.local
 .vite/

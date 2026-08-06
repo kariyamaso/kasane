@@ -4,6 +4,27 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Geometric Primitive-Based Image Approximation — 幾何プリミティブによる段階的画像近似",
+  "license": "MIT",
+  "author": "kariyamaso",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kariyamaso/primitiveimages.git"
+  },
+  "homepage": "https://kariyamaso.github.io/primitiveimages/",
+  "bugs": {
+    "url": "https://github.com/kariyamaso/primitiveimages/issues"
+  },
+  "keywords": [
+    "image-approximation",
+    "geometric-primitives",
+    "generative-art",
+    "hill-climbing",
+    "simulated-annealing",
+    "svg",
+    "canvas",
+    "vite",
+    "typescript"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

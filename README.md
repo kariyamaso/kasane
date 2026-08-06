@@ -2,6 +2,18 @@
 
 **幾何プリミティブによる段階的画像近似 / Geometric Primitive-Based Image Approximation**
 
+[![CI](https://github.com/kariyamaso/primitiveimages/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/primitiveimages/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**Demo: https://kariyamaso.github.io/primitiveimages/**
+
+> A web app that progressively reconstructs a target image by layering
+> semi-transparent geometric primitives (triangles, quads, circles, polygons,
+> lines, Bézier curves). Uses stochastic hill climbing with optional simulated
+> annealing, closed-form optimal color solving, and scanline-based incremental
+> SSE evaluation — all running in a Web Worker. Exports PNG / SVG / JSON.
+> Fully client-side, no server required.
+
 基準画像を、三角形・四角形・円・正多角形・線分・ベジェ曲線などの単純図形を
 半透明で重ねることによって段階的に構成する Web アプリケーション。
 図形数 N が少ない段階では概形だけが見え、N が増えるほど細部が復元される
@@ -179,3 +191,7 @@ test/
 - **GA との比較実験**: `model.ts` の `search()` を差し替えれば、同じ評価系のまま進化計算版を実装できる
 - **図形列の解析**: JSON 書き出しに全図形のパラメータ・色・α・そのステップ時点の RMSE が入っているので、
   「N に対する誤差の減衰曲線」「図形種別ごとの寄与」などをそのまま解析できる
+
+## License
+
+[MIT](LICENSE)
