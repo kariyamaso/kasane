@@ -1,7 +1,7 @@
 import './style.css'
 import {
   DEFAULT_CONFIG,
-  SHAPE_LABELS,
+  SHAPE_KINDS,
   type Config,
   type FromWorker,
   type RGB,
@@ -12,6 +12,7 @@ import {
 import { hexToRgb } from './core/color'
 import { recordsToSvg } from './core/svg'
 import { drawRecord, renderUpTo } from './ui/render'
+import { initI18n, onLangChange, t, type MsgKey } from './ui/i18n'
 
 /* ------------------------------------------------------------------ */
 /* DOM helpers                                                         */
@@ -151,10 +152,10 @@ const GRADIENT_PRESETS: Record<string, string[]> = {
 
 function buildChips() {
   el.shapeChips.innerHTML = ''
-  ;(Object.keys(SHAPE_LABELS) as ShapeKind[]).forEach((k) => {
+  SHAPE_KINDS.forEach((k: ShapeKind) => {
     const b = document.createElement('button')
     b.className = 'chip' + (enabledShapes.has(k) ? ' on' : '')
-    b.textContent = SHAPE_LABELS[k]
+    b.textContent = t(`shape.${k}` as MsgKey)
     b.onclick = () => {
       if (enabledShapes.has(k)) enabledShapes.delete(k)
       else enabledShapes.add(k)
@@ -236,20 +237,22 @@ function updateRamp() {
   }
 }
 
-const COLOR_HINTS: Record<string, string> = {
-  auto: '各図形が覆う領域について、誤差が最小になる色を閉形式で解いて使います。最も忠実な復元。',
-  gradient: '最適色をグラデーション上の色へ射影します。ストップは何色でも追加できます。',
-  palette: '指定した色だけを使います。ポスター / シルクスクリーン風。',
-  mono: '最初の 2 色を暗→明のランプとして使い、最適色の輝度で位置を決めます。',
-}
-
 function syncColorUi() {
   const mode = el.colorMode.value
   el.stopsWrap.style.display = mode === 'auto' ? 'none' : ''
   el.mappingRow.style.display = mode === 'gradient' ? '' : 'none'
   el.presets.style.display = mode === 'palette' ? 'none' : ''
-  el.colorHint.textContent = COLOR_HINTS[mode] ?? ''
+  el.colorHint.textContent = t(`hint.${mode}` as MsgKey)
   updateRamp()
+}
+
+/**
+ * 実行ボタンの表示。言語切替時に再適用できるよう、現在の状態キーを
+ * dataset に残しておく。
+ */
+function setRunLabel(key: 'run' | 'pause' | 'resume') {
+  el.run.dataset.k = key
+  el.run.textContent = t(key)
 }
 
 function applyDefaults() {
@@ -301,9 +304,7 @@ function syncSizeUi(driver?: 'min' | 'max') {
 
   const res = Number(el.resolution.value)
   const px = (v: number) => ((v / 1000) * res).toFixed(1)
-  el.sizeHint.textContent =
-    `外接円半径 ${px(lo)} 〜 ${px(hi)} px（計算解像度 ${res}px 換算）。` +
-    `生成時の初期値と変異時の上下限の両方に効きます。`
+  el.sizeHint.textContent = t('sizeHint', { lo: px(lo), hi: px(hi), res })
 }
 
 function readConfig(): Config {
@@ -347,6 +348,9 @@ function clampNum(input: HTMLInputElement, lo: number, hi: number): number {
 async function loadFromBlob(blob: Blob, name: string) {
   const bmp = await createImageBitmap(blob)
   state.bitmap = bmp
+  // 以後は動的な内容なので、言語切替の一括適用対象から外す
+  el.dropLabel.removeAttribute('data-i18n')
+  el.imgInfo.removeAttribute('data-i18n')
   el.dropLabel.textContent = name
   el.imgInfo.textContent = `${bmp.width} × ${bmp.height} px`
   el.outW.value = String(Math.min(1600, Math.max(256, bmp.width)))
@@ -438,7 +442,7 @@ function resetRun() {
   state.playing = false
   state.elapsed = 0
   el.play.textContent = '▶'
-  el.run.textContent = '実行'
+  setRunLabel('run')
   el.scrub.max = '0'
   el.scrub.value = '0'
   el.scrub.disabled = true
@@ -503,7 +507,7 @@ function start() {
   )
   w.postMessage({ type: 'run' } satisfies ToWorker)
   state.running = true
-  el.run.textContent = '一時停止'
+  setRunLabel('pause')
   el.reset.disabled = false
 }
 
@@ -555,18 +559,18 @@ function onWorkerMessage(msg: FromWorker) {
     }
     case 'done':
       state.running = false
-      el.run.textContent = '実行'
+      setRunLabel('run')
       el.statTime.textContent = fmtTime(msg.elapsedMs)
       renderView()
       break
     case 'paused':
       state.running = false
-      el.run.textContent = '再開'
+      setRunLabel('resume')
       break
     case 'error':
       state.running = false
-      el.run.textContent = '実行'
-      alert(`エラー: ${msg.message}`)
+      setRunLabel('run')
+      alert(t('error', { msg: msg.message }))
       break
   }
 }
@@ -593,7 +597,7 @@ function renderView() {
   el.figTarget.classList.toggle('hidden', state.view === 'result' || state.view === 'diff')
   el.figResult.classList.toggle('hidden', state.view === 'target')
   el.canvases.classList.toggle('single', state.view !== 'split')
-  el.outCaption.textContent = state.view === 'diff' ? '差分(明るいほど誤差が大きい)' : '近似結果'
+  el.outCaption.textContent = state.view === 'diff' ? t('cap.diff') : t('cap.result')
 
   if (state.view === 'diff') {
     renderDiff(n)
@@ -710,7 +714,7 @@ el.drop.addEventListener('drop', (e) => {
 
 el.sample.onclick = async () => {
   const blob = await makeSample()
-  void loadFromBlob(blob, 'サンプル画像')
+  void loadFromBlob(blob, t('sampleName'))
 }
 
 el.run.onclick = () => {
@@ -735,7 +739,7 @@ el.run.onclick = () => {
     worker.postMessage({ type: 'run' } satisfies ToWorker)
     state.running = true
     state.follow = true
-    el.run.textContent = '一時停止'
+    setRunLabel('pause')
   } else {
     start()
   }
@@ -804,9 +808,19 @@ el.expPng.onclick = exportPng
 el.expSvg.onclick = exportSvg
 el.expJson.onclick = exportJson
 
+initI18n('title.image')
 applyDefaults()
 buildChips()
 buildStops()
 buildPresets()
 syncColorUi()
-ensureWorker() // ページ読み込み時にワーカーを起動しておき、実行ボタンのラグをなくす
+ensureWorker()
+
+// 言語切替時: 動的に生成・状態依存で表示しているものを再描画する
+onLangChange(() => {
+  buildChips()
+  syncColorUi()
+  syncSizeUi()
+  setRunLabel((el.run.dataset.k as 'run' | 'pause' | 'resume') ?? 'run')
+  if (state.bitmap) renderView()
+}) // ページ読み込み時にワーカーを起動しておき、実行ボタンのラグをなくす

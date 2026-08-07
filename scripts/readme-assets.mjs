@@ -2,6 +2,7 @@
  * README 用の SVG アセットを「アプリ自身のパイプライン」で生成する。
  * 飾りのモックではなく、実際の Model / VideoModel の出力をそのまま使う。
  *
+ *   docs/assets/title.svg     「KASANE 襲」の文字画像を三角形近似し、構成過程をループ再生
  *   docs/assets/hero.svg      横長シーンの三角形近似。構成過程を SMIL でループ再生
  *   docs/assets/palettes.svg  同一入力・同一探索で配色制約だけを差し替えた4連
  *   docs/assets/video-demo.svg 動画パイプラインのアニメSVG出力そのもの
@@ -43,6 +44,35 @@ await page.goto(base + '/index.html')
 
 const f = (v) => (Math.round(v * 100) / 100).toString()
 const f4 = (v) => (Math.round(v * 10000) / 10000).toString()
+
+/**
+ * 図形リスト {bg, items:[{fill,op,pts}]} を「構成過程がループ再生される SVG」にする。
+ * 各図形の fill-opacity を keyTimes でずらして立ち上げ、build 割合まで積み上げたら
+ * 完成形を保持して先頭へ戻る。
+ */
+function constructionSvg(data, outW, dur, build = 0.72) {
+  const sc = outW / data.w
+  const outH = Math.round(data.h * sc)
+  const N = data.items.length
+  const parts = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}" viewBox="0 0 ${outW} ${outH}">`,
+    `<rect width="100%" height="100%" fill="${data.bg}"/>`,
+  ]
+  data.items.forEach((it, i) => {
+    let d = ''
+    for (let k = 0; k < it.pts.length; k += 2) d += `${f(it.pts[k] * sc)},${f(it.pts[k + 1] * sc)} `
+    const ti = 0.015 + build * (i / (N - 1))
+    const t0 = Math.max(0.001, ti - 0.006)
+    parts.push(
+      `<polygon points="${d.trim()}" fill="${it.fill}" fill-opacity="${f4(it.op)}">` +
+        `<animate attributeName="fill-opacity" dur="${dur}s" repeatCount="indefinite" ` +
+        `calcMode="linear" keyTimes="0;${f4(t0)};${f4(ti)};1" values="0;0;${f4(it.op)};${f4(it.op)}"/>` +
+        `</polygon>`,
+    )
+  })
+  parts.push('</svg>')
+  return parts.join('\n')
+}
 
 /* ------------------------------------------------------------------ */
 /* 1. ヒーローバナー: 横長シーン → 三角形近似 → 構成過程アニメ            */
@@ -127,32 +157,80 @@ const hero = await page.evaluate(async () => {
   }
 })
 
-{
-  const outW = 1200
-  const sc = outW / hero.w
-  const outH = Math.round(hero.h * sc)
-  const N = hero.items.length
-  const DUR = 10 // 構成 7.4s + 完成形の保持 2.6s でループ
-  const parts = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}" viewBox="0 0 ${outW} ${outH}">`,
-    `<rect width="100%" height="100%" fill="${hero.bg}"/>`,
-  ]
-  hero.items.forEach((it, i) => {
-    let d = ''
-    for (let k = 0; k < it.pts.length; k += 2) d += `${f(it.pts[k] * sc)},${f(it.pts[k + 1] * sc)} `
-    const ti = 0.015 + 0.72 * (i / (N - 1))
-    const t0 = Math.max(0.001, ti - 0.006)
-    parts.push(
-      `<polygon points="${d.trim()}" fill="${it.fill}" fill-opacity="${f4(it.op)}">` +
-        `<animate attributeName="fill-opacity" dur="${DUR}s" repeatCount="indefinite" ` +
-        `calcMode="linear" keyTimes="0;${f4(t0)};${f4(ti)};1" values="0;0;${f4(it.op)};${f4(it.op)}"/>` +
-        `</polygon>`,
-    )
-  })
-  parts.push('</svg>')
-  writeFileSync(OUT + 'hero.svg', parts.join('\n'))
-  console.log(`hero.svg          ${N}図形 rmse=${hero.rmse.toFixed(4)}`)
-}
+writeFileSync(OUT + 'hero.svg', constructionSvg(hero, 1200, 10))
+console.log(`hero.svg          ${hero.items.length}図形 rmse=${hero.rmse.toFixed(4)}`)
+
+/* ------------------------------------------------------------------ */
+/* 1b. タイトル: 「KASANE 襲」の文字自体をプリミティブ近似して構成する    */
+/* ------------------------------------------------------------------ */
+
+const title = await page.evaluate(async () => {
+  const { Model } = await import('/src/core/model.ts')
+  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+  const { outlinePoints } = await import('/src/core/shapes.ts')
+  const { rgbToHex } = await import('/src/core/color.ts')
+
+  const c = document.createElement('canvas')
+  c.width = 1200
+  c.height = 300
+  const g = c.getContext('2d')
+  g.fillStyle = '#0e1013' // アプリ背景色
+  g.fillRect(0, 0, 1200, 300)
+  const grad = g.createLinearGradient(140, 0, 1060, 0)
+  grad.addColorStop(0, '#f2b705')
+  grad.addColorStop(0.55, '#ffd97a')
+  grad.addColorStop(1, '#4d8df6')
+  g.fillStyle = grad
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.font = '900 168px "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif'
+  g.fillText('KASANE', 505, 162)
+  // 襲は画数が多いので大きめに描いて筆画を解像させる
+  g.font = '900 224px "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif'
+  g.fillText('襲', 1032, 155)
+
+  const w = 720
+  const h = 180
+  const s = document.createElement('canvas')
+  s.width = w
+  s.height = h
+  const sg = s.getContext('2d', { willReadFrequently: true })
+  sg.drawImage(c, 0, 0, w, h)
+  const pixels = sg.getImageData(0, 0, w, h).data
+
+  // 文字を判読可能にするため、小さめの三角形を多めに積む
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    steps: 900,
+    alpha: 200,
+    shapes: ['triangle'],
+    sizeMin: 0.0035,
+    sizeMax: 0.05,
+    randomTries: 72,
+    hillClimbAge: 28,
+    seed: 9,
+    bg: 'custom',
+    bgColor: '#0e1013',
+  }
+  const model = new Model(w, h, pixels, cfg)
+  while (model.records.length < cfg.steps) {
+    if (!model.step()) break
+  }
+  return {
+    w,
+    h,
+    bg: rgbToHex(model.bg),
+    rmse: model.score,
+    items: model.records.map((r) => ({
+      fill: rgbToHex(r.color),
+      op: r.alpha / 255,
+      pts: outlinePoints(r.shape),
+    })),
+  }
+})
+
+writeFileSync(OUT + 'title.svg', constructionSvg(title, 1200, 12, 0.76))
+console.log(`title.svg         ${title.items.length}図形 rmse=${title.rmse.toFixed(4)}`)
 
 /* ------------------------------------------------------------------ */
 /* 2. 配色統制ストリップ: 同一入力・同一探索・配色制約だけ差し替え        */
@@ -353,7 +431,7 @@ console.log(`video-demo.svg    軌跡${videoSvg.tracks}本 churn=${videoSvg.chur
 
 /* ---- サイズと妥当性の確認 ---- */
 const { statSync } = await import('node:fs')
-for (const name of ['hero.svg', 'palettes.svg', 'video-demo.svg']) {
+for (const name of ['title.svg', 'hero.svg', 'palettes.svg', 'video-demo.svg']) {
   const kb = (statSync(OUT + name).size / 1024).toFixed(0)
   console.log(`  ${name}: ${kb} KB`)
 }

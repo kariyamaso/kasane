@@ -1,7 +1,8 @@
 import '../style.css'
-import { DEFAULT_CONFIG, SHAPE_LABELS, type RGB, type ShapeKind, type ShapeRecord } from '../core/types'
+import { DEFAULT_CONFIG, SHAPE_KINDS, type RGB, type ShapeKind, type ShapeRecord } from '../core/types'
 import { recordsToSvg } from '../core/svg'
 import { renderUpTo } from '../ui/render'
+import { initI18n, onLangChange, t, type MsgKey } from '../ui/i18n'
 import { tracksToAnimatedSvg } from './animsvg'
 import {
   DEFAULT_VIDEO_EXTRA,
@@ -116,6 +117,9 @@ const state = {
   playing: false,
   view: 'split' as View,
   elapsed: 0,
+  /* 言語切替時に動的文言を再構成するためのパラメータ */
+  infoMsg: null as Record<string, string | number> | null,
+  doneMsg: null as Record<string, string | number> | null,
 }
 
 const enabledShapes = new Set<ShapeKind>(['triangle'])
@@ -158,10 +162,10 @@ const GRADIENT_PRESETS: Record<string, string[]> = {
 
 function buildChips() {
   el.shapeChips.innerHTML = ''
-  ;(Object.keys(SHAPE_LABELS) as ShapeKind[]).forEach((k) => {
+  SHAPE_KINDS.forEach((k: ShapeKind) => {
     const b = document.createElement('button')
     b.className = 'chip' + (enabledShapes.has(k) ? ' on' : '')
-    b.textContent = SHAPE_LABELS[k]
+    b.textContent = t(`shape.${k}` as MsgKey)
     b.onclick = () => {
       if (enabledShapes.has(k)) enabledShapes.delete(k)
       else enabledShapes.add(k)
@@ -268,6 +272,11 @@ function syncOutputs() {
   el.sizeMaxOut.value = fmt(hi)
 }
 
+function setRunLabel(key: 'run' | 'pause' | 'resume') {
+  el.run.dataset.k = key
+  el.run.textContent = t(key)
+}
+
 function clampNum(input: HTMLInputElement, lo: number, hi: number): number {
   const v = Math.round(Number(input.value))
   const c = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo
@@ -333,7 +342,7 @@ function waitEvent(target: EventTarget, name: string, timeoutMs = 4000): Promise
     const onErr = () => {
       clearTimeout(timer)
       target.removeEventListener(name, on)
-      reject(new Error('動画の読み込みに失敗しました'))
+      reject(new Error(t('vid.loadFail')))
     }
     target.addEventListener(name, on, { once: true })
     target.addEventListener('error', onErr, { once: true })
@@ -370,7 +379,7 @@ async function extractFrames(cfg: VideoConfig): Promise<void> {
     const vw = video.videoWidth
     const vh = video.videoHeight
     if (!vw || !vh || !Number.isFinite(video.duration)) {
-      throw new Error('この動画はブラウザでデコードできません')
+      throw new Error(t('vid.decodeFail'))
     }
     const s = cfg.resolution / Math.max(vw, vh)
     const w = Math.max(8, Math.round(vw * s))
@@ -386,7 +395,7 @@ async function extractFrames(cfg: VideoConfig): Promise<void> {
       scratchCtx.drawImage(video, 0, 0, w, h)
       frames.push(scratchCtx.getImageData(0, 0, w, h).data)
       if (i % 5 === 0 || i === count - 1) {
-        el.run.textContent = `抽出中 ${i + 1}/${count}`
+        el.run.textContent = t('vid.extracting', { i: i + 1, n: count })
         await new Promise((r) => requestAnimationFrame(r))
       }
     }
@@ -395,8 +404,8 @@ async function extractFrames(cfg: VideoConfig): Promise<void> {
     state.compW = w
     state.compH = h
     state.extractKey = key
-    el.vidInfo.textContent =
-      `${vw}×${vh} px, ${video.duration.toFixed(1)}s → ${count}フレーム @${cfg.fps}fps (${w}×${h})`
+    state.infoMsg = { vw, vh, dur: video.duration.toFixed(1), n: count, fps: cfg.fps, w, h }
+    el.vidInfo.textContent = t('vid.info', state.infoMsg)
   } finally {
     state.extracting = false
     URL.revokeObjectURL(url)
@@ -418,7 +427,7 @@ function resetRun() {
   state.playing = false
   state.elapsed = 0
   el.play.textContent = '▶'
-  el.run.textContent = '実行'
+  setRunLabel('run')
   el.scrub.max = '0'
   el.scrub.value = '0'
   el.scrub.disabled = true
@@ -441,7 +450,7 @@ async function start() {
   } catch (e) {
     alert(e instanceof Error ? e.message : String(e))
     el.run.disabled = false
-    el.run.textContent = '実行'
+    setRunLabel('run')
     return
   }
   el.run.disabled = false
@@ -469,7 +478,7 @@ async function start() {
   )
   w.postMessage({ type: 'run' } satisfies ToVideoWorker)
   state.running = true
-  el.run.textContent = '一時停止'
+  setRunLabel('pause')
   el.reset.disabled = false
 }
 
@@ -506,23 +515,27 @@ function onWorkerMessage(msg: FromVideoWorker) {
       state.running = false
       state.tracks = msg.tracks
       state.elapsed = msg.elapsedMs
-      el.run.textContent = '実行'
+      setRunLabel('run')
       el.statTime.textContent = fmtTime(msg.elapsedMs)
       el.expAnimSvg.disabled = false
       el.expJson.disabled = false
-      el.expHint.textContent =
-        `軌跡 ${msg.tracks.length} 本 / 全${msg.totalSamples}サンプル → ` +
-        `${msg.totalKeys}キーフレーム (${((msg.totalKeys / Math.max(1, msg.totalSamples)) * 100).toFixed(1)}%) に圧縮。`
+      state.doneMsg = {
+        tracks: msg.tracks.length,
+        samples: msg.totalSamples,
+        keys: msg.totalKeys,
+        pct: ((msg.totalKeys / Math.max(1, msg.totalSamples)) * 100).toFixed(1),
+      }
+      el.expHint.textContent = t('vid.doneHint', state.doneMsg)
       break
     }
     case 'paused':
       state.running = false
-      el.run.textContent = '再開'
+      setRunLabel('resume')
       break
     case 'error':
       state.running = false
-      el.run.textContent = '実行'
-      alert(`エラー: ${msg.message}`)
+      setRunLabel('run')
+      alert(t('error', { msg: msg.message }))
       break
   }
 }
@@ -674,8 +687,12 @@ function loadFile(f: File) {
   state.videoFile = f
   state.extractKey = ''
   state.frames = []
+  state.infoMsg = null
+  // 以後は動的な内容なので、言語切替の一括適用対象から外す
+  el.dropLabel.removeAttribute('data-i18n')
+  el.vidInfo.removeAttribute('data-i18n')
   el.dropLabel.textContent = f.name
-  el.vidInfo.textContent = '実行時にフレームを抽出します'
+  el.vidInfo.textContent = t('vid.extractOnRun')
   el.run.disabled = false
   el.reset.disabled = false
   resetRun()
@@ -711,7 +728,7 @@ el.run.onclick = () => {
     worker.postMessage({ type: 'run' } satisfies ToVideoWorker)
     state.running = true
     state.follow = true
-    el.run.textContent = '一時停止'
+    setRunLabel('pause')
   } else {
     void start()
   }
@@ -789,9 +806,20 @@ el.expJson.onclick = exportJson
 el.expPng.onclick = exportFramePng
 el.expSvg.onclick = exportFrameSvg
 
+initI18n('title.video')
 syncOutputs()
 buildChips()
 buildStops()
 buildPresets()
 syncColorUi()
 ensureWorker()
+
+// 言語切替時: 動的に生成・状態依存で表示しているものを再描画する
+onLangChange(() => {
+  buildChips()
+  syncColorUi()
+  setRunLabel((el.run.dataset.k as 'run' | 'pause' | 'resume') ?? 'run')
+  if (state.infoMsg) el.vidInfo.textContent = t('vid.info', state.infoMsg)
+  else if (state.videoFile) el.vidInfo.textContent = t('vid.extractOnRun')
+  if (state.doneMsg) el.expHint.textContent = t('vid.doneHint', state.doneMsg)
+})

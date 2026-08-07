@@ -44,6 +44,8 @@ function boundingRadius(shape) {
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined })
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+// テストは日本語ラベルでUIを操作するので言語を固定する
+await page.addInitScript(() => localStorage.setItem('kasane-lang', 'ja'))
 const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))

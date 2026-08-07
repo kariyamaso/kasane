@@ -1,10 +1,9 @@
 <p align="center">
-  <img src="kasane.jpg" width="220" alt="Kasane 襲 ロゴ" />
+  <img src="docs/assets/title.svg" width="760" alt="KASANE 襲 — タイトル文字が900枚の三角形で構成されていくアニメーション" />
 </p>
 
-<h1 align="center">Kasane 襲</h1>
-
 <p align="center"><b>Layered Geometric Primitive-Based Image Approximation</b></p>
+<p align="center"><sub>タイトルも Kasane の出力(三角形900枚)。文字画像をプリミティブ近似し、構成過程をループ再生しています</sub></p>
 
 <p align="center">
   <img src="docs/assets/hero.svg" width="100%" alt="240枚の半透明三角形が1枚ずつ重なって山と日輪の風景が立ち上がる(ループ)" />
@@ -303,7 +302,7 @@ test/
   video.mjs            動画版の動作確認(合成webmで完走・churn・キーフレーム化・アニメSVGを検証)
   rerun.mjs            図形数変更→再実行の分岐(続きから追加 / 新規実行)を検証
 scripts/
-  readme-assets.mjs    README 用 SVG(ヒーロー/配色比較/動画デモ)をアプリ自身のパイプラインで生成
+  readme-assets.mjs    README 用 SVG(タイトル/ヒーロー/配色比較/動画デモ)をアプリ自身のパイプラインで生成
 docs/assets/           上記スクリプトの出力(README から参照される)
 ```
 

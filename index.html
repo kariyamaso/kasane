@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1013'/%3E%3Cpolygon points='6,26 16,6 26,26' fill='%23f2b705' fill-opacity='.8'/%3E%3Ccircle cx='20' cy='13' r='8' fill='%234d8df6' fill-opacity='.6'/%3E%3C/svg%3E"
-    />
+    <link rel="icon" type="image/png" href="./favicon.png" />
     <title>Kasane 襲 — 幾何プリミティブを重ねて画像を構成する</title>
   </head>
   <body>
@@ -16,34 +13,41 @@
           Kasane 襲
           <small>Layered Geometric Image Approximation</small>
         </h1>
-        <div class="pagenav"><a href="./video.html">動画版 →</a></div>
+        <div class="pagenav">
+          <a href="./video.html" data-i18n="nav.video">動画版 →</a>
+          <span class="grow"></span>
+          <span class="langswitch">
+            <button data-lang="ja">日本語</button>
+            <button data-lang="en">EN</button>
+          </span>
+        </div>
 
         <details open>
-          <summary>1. 基準画像</summary>
+          <summary data-i18n="img.sec.source">1. 基準画像</summary>
           <div class="body">
             <label class="drop" id="drop">
               <input type="file" id="file" accept="image/*" hidden />
-              <span id="dropLabel">クリック / ドロップで画像を読み込む</span>
+              <span id="dropLabel" data-i18n="img.drop">クリック / ドロップで画像を読み込む</span>
             </label>
-            <button class="ghost" id="sample">サンプル画像を使う</button>
-            <div class="hint" id="imgInfo">未読み込み</div>
+            <button class="ghost" id="sample" data-i18n="img.sample">サンプル画像を使う</button>
+            <div class="hint" id="imgInfo" data-i18n="notLoaded">未読み込み</div>
           </div>
         </details>
 
         <details open>
-          <summary>2. 図形</summary>
+          <summary data-i18n="sec.shapes">2. 図形</summary>
           <div class="body">
             <div class="chips" id="shapeChips"></div>
-            <div class="sub">正多角形の辺数</div>
+            <div class="sub" data-i18n="shapes.sides">正多角形の辺数</div>
             <div class="chips small" id="sideChips"></div>
-            <div class="sub">サイズ範囲(外接円半径 ／ 長辺比)</div>
+            <div class="sub" data-i18n="shapes.size">サイズ範囲(外接円半径 ／ 長辺比)</div>
             <label class="row">
-              <span>最小</span>
+              <span data-i18n="min">最小</span>
               <input type="range" id="sizeMin" min="1" max="800" step="1" />
               <output id="sizeMinOut"></output>
             </label>
             <label class="row">
-              <span>最大</span>
+              <span data-i18n="max">最大</span>
               <input type="range" id="sizeMax" min="1" max="800" step="1" />
               <output id="sizeMaxOut"></output>
             </label>
@@ -53,37 +57,37 @@
         </details>
 
         <details open>
-          <summary>3. 構成</summary>
+          <summary data-i18n="sec.compose">3. 構成</summary>
           <div class="body">
             <label class="row">
-              <span>図形数 N</span>
+              <span data-i18n="steps.image">図形数 N</span>
               <input type="number" id="steps" min="1" max="5000" step="10" />
             </label>
             <label class="row">
-              <span>不透明度 α</span>
+              <span data-i18n="alpha">不透明度 α</span>
               <input type="range" id="alpha" min="8" max="255" />
               <output id="alphaOut"></output>
             </label>
             <label class="check">
-              <input type="checkbox" id="optAlpha" /><span>α も最適化する</span>
+              <input type="checkbox" id="optAlpha" /><span data-i18n="optAlpha">α も最適化する</span>
             </label>
             <label class="row">
-              <span>計算解像度</span>
+              <span data-i18n="resolution">計算解像度</span>
               <select id="resolution">
-                <option value="128">128 px(高速)</option>
+                <option value="128" data-i18n="res.fast">128 px(高速)</option>
                 <option value="192">192 px</option>
-                <option value="256">256 px(標準)</option>
+                <option value="256" data-i18n="res.std">256 px(標準)</option>
                 <option value="384">384 px</option>
-                <option value="512">512 px(高精度・低速)</option>
+                <option value="512" data-i18n="res.fine">512 px(高精度・低速)</option>
               </select>
             </label>
             <label class="row">
-              <span>背景</span>
+              <span data-i18n="bg">背景</span>
               <select id="bg">
-                <option value="average">元画像の平均色</option>
-                <option value="white">白</option>
-                <option value="black">黒</option>
-                <option value="custom">指定色</option>
+                <option value="average" data-i18n="bg.avg.image">元画像の平均色</option>
+                <option value="white" data-i18n="bg.white">白</option>
+                <option value="black" data-i18n="bg.black">黒</option>
+                <option value="custom" data-i18n="bg.custom">指定色</option>
               </select>
               <input type="color" id="bgColor" />
             </label>
@@ -91,34 +95,34 @@
         </details>
 
         <details open>
-          <summary>4. 配色</summary>
+          <summary data-i18n="sec.color">4. 配色</summary>
           <div class="body">
             <label class="row">
-              <span>モード</span>
+              <span data-i18n="color.mode">モード</span>
               <select id="colorMode">
-                <option value="auto">元画像から自動抽出</option>
-                <option value="gradient">グラデーション</option>
-                <option value="palette">固定パレット</option>
-                <option value="mono">モノクロ / 単色階調</option>
+                <option value="auto" data-i18n="color.auto.image">元画像から自動抽出</option>
+                <option value="gradient" data-i18n="color.gradient">グラデーション</option>
+                <option value="palette" data-i18n="color.palette">固定パレット</option>
+                <option value="mono" data-i18n="color.mono">モノクロ / 単色階調</option>
               </select>
             </label>
             <div id="mappingRow" class="row">
-              <span>写像</span>
+              <span data-i18n="color.mapping">写像</span>
               <select id="colorMapping">
-                <option value="nearest">最近傍(色相を尊重)</option>
-                <option value="luma">輝度マッピング</option>
+                <option value="nearest" data-i18n="map.nearest">最近傍(色相を尊重)</option>
+                <option value="luma" data-i18n="map.luma">輝度マッピング</option>
               </select>
             </div>
             <div id="stopsWrap">
               <div class="sub">
-                色ストップ
+                <span data-i18n="color.stops">色ストップ</span>
                 <button class="mini" id="addStop">＋</button>
               </div>
               <div class="stops" id="stops"></div>
               <div class="presets" id="presets"></div>
             </div>
             <label class="row">
-              <span>元色ブレンド</span>
+              <span data-i18n="color.blend">元色ブレンド</span>
               <input type="range" id="blend" min="0" max="100" />
               <output id="blendOut"></output>
             </label>
@@ -128,45 +132,45 @@
         </details>
 
         <details>
-          <summary>5. 探索パラメータ</summary>
+          <summary data-i18n="img.sec.search">5. 探索パラメータ</summary>
           <div class="body">
             <label class="row">
-              <span>ランダム候補数</span>
+              <span data-i18n="tries">ランダム候補数</span>
               <input type="number" id="tries" min="4" max="1000" step="4" />
             </label>
             <label class="row">
-              <span>山登り停滞許容</span>
+              <span data-i18n="age">山登り停滞許容</span>
               <input type="number" id="age" min="1" max="500" step="1" />
             </label>
             <label class="check">
-              <input type="checkbox" id="anneal" /><span>焼きなましを併用</span>
+              <input type="checkbox" id="anneal" /><span data-i18n="anneal">焼きなましを併用</span>
             </label>
             <label class="row">
-              <span>温度</span>
+              <span data-i18n="temp">温度</span>
               <input type="range" id="temp" min="1" max="200" />
               <output id="tempOut"></output>
             </label>
             <label class="row">
-              <span>焼きなまし反復</span>
+              <span data-i18n="annealIters">焼きなまし反復</span>
               <input type="number" id="annealIters" min="10" max="2000" step="10" />
             </label>
             <label class="row">
-              <span>乱数シード</span>
+              <span data-i18n="seed">乱数シード</span>
               <input type="number" id="seed" min="1" step="1" />
             </label>
           </div>
         </details>
 
         <div class="actions">
-          <button id="run" class="primary" disabled>実行</button>
-          <button id="reset" class="ghost" disabled>リセット</button>
+          <button id="run" class="primary" disabled data-i18n="run">実行</button>
+          <button id="reset" class="ghost" disabled data-i18n="reset">リセット</button>
         </div>
 
         <details open>
-          <summary>6. 書き出し</summary>
+          <summary data-i18n="img.sec.export">6. 書き出し</summary>
           <div class="body">
             <label class="row">
-              <span>出力幅</span>
+              <span data-i18n="outW">出力幅</span>
               <input type="number" id="outW" min="64" max="4096" step="64" />
             </label>
             <div class="actions wrap">
@@ -174,29 +178,38 @@
               <button class="ghost" id="expSvg" disabled>SVG</button>
               <button class="ghost" id="expJson" disabled>JSON</button>
             </div>
-            <div class="hint">現在スライダーで表示中のステップを書き出します。</div>
+            <div class="hint" data-i18n="img.exportHint">現在スライダーで表示中のステップを書き出します。</div>
           </div>
         </details>
       </aside>
 
       <main class="stage">
         <div class="stats">
-          <div><b id="statStep">0</b><span>/ <i id="statTotal">0</i> 図形</span></div>
+          <div>
+            <b id="statStep">0</b
+            ><span>/ <i id="statTotal">0</i> <span data-i18n="stat.shapes">図形</span></span>
+          </div>
           <div><b id="statRmse">—</b><span>RMSE</span></div>
-          <div><b id="statSim">—</b><span>一致度</span></div>
-          <div><b id="statTime">—</b><span>経過</span></div>
+          <div><b id="statSim">—</b><span data-i18n="stat.sim">一致度</span></div>
+          <div><b id="statTime">—</b><span data-i18n="stat.time">経過</span></div>
           <div class="spacer"></div>
           <div class="viewtabs" id="viewTabs">
-            <button data-view="split" class="on">並列</button>
-            <button data-view="result">結果</button>
-            <button data-view="target">元画像</button>
-            <button data-view="diff">差分</button>
+            <button data-view="split" class="on" data-i18n="view.split">並列</button>
+            <button data-view="result" data-i18n="view.result">結果</button>
+            <button data-view="target" data-i18n="view.target.image">元画像</button>
+            <button data-view="diff" data-i18n="view.diff">差分</button>
           </div>
         </div>
 
         <div class="canvases" id="canvases">
-          <figure id="figTarget"><canvas id="srcCanvas"></canvas><figcaption>基準画像</figcaption></figure>
-          <figure id="figResult"><canvas id="outCanvas"></canvas><figcaption id="outCaption">近似結果</figcaption></figure>
+          <figure id="figTarget">
+            <canvas id="srcCanvas"></canvas>
+            <figcaption data-i18n="cap.target.image">基準画像</figcaption>
+          </figure>
+          <figure id="figResult">
+            <canvas id="outCanvas"></canvas>
+            <figcaption id="outCaption" data-i18n="cap.result">近似結果</figcaption>
+          </figure>
         </div>
 
         <div class="timeline">
@@ -205,7 +218,7 @@
           <span class="tl-label" id="scrubLabel">0</span>
         </div>
 
-        <p class="footnote">
+        <p class="footnote" data-i18n-html="footnote.image">
           Î<sub>N</sub>(x,y) = Composite(P<sub>1</sub>,…,P<sub>N</sub>) ／ P<sub>i</sub> = (形状, 位置, 大きさ, 回転, 色, α)
           — 各ステップで最適色を閉形式で解き、山登り法と焼きなましで幾何パラメータを最適化しています。
         </p>

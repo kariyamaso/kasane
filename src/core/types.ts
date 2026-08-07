@@ -116,18 +116,19 @@ export const DEFAULT_CONFIG: Config = {
   seed: 1,
 }
 
-export const SHAPE_LABELS: Record<ShapeKind, string> = {
-  triangle: '三角形',
-  quad: '四角形(任意)',
-  rect: '矩形(軸平行)',
-  rotrect: '矩形(回転)',
-  ellipse: '楕円',
-  rotellipse: '楕円(回転)',
-  circle: '円',
-  regular: '正多角形',
-  line: '線分',
-  bezier: 'ベジェ曲線',
-}
+/** UI に並べる図形種別の順序。表示名は ui/i18n.ts の shape.* キーで解決する */
+export const SHAPE_KINDS: ShapeKind[] = [
+  'triangle',
+  'quad',
+  'rect',
+  'rotrect',
+  'ellipse',
+  'rotellipse',
+  'circle',
+  'regular',
+  'line',
+  'bezier',
+]
 
 /* ---- Worker メッセージ ---- */
 
