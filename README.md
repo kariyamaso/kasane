@@ -1,13 +1,14 @@
-# Kasane 襲
+<p align="center">
+  <img src="kasane.jpg" width="220" alt="Kasane 襲 ロゴ" />
+</p>
 
-**Layered Geometric Primitive-Based Image Approximation**
+<h1 align="center">Kasane 襲</h1>
+
+<p align="center"><b>Layered Geometric Primitive-Based Image Approximation</b></p>
 
 <p align="center">
   <img src="docs/assets/hero.svg" width="100%" alt="240枚の半透明三角形が1枚ずつ重なって山と日輪の風景が立ち上がる(ループ)" />
 </p>
-<p align="center"><sub>
-このバナーは Kasane 自身の出力(三角形240枚・RMSE 0.028)。SVG の SMIL アニメーションで構成過程がループ再生される
-</sub></p>
 
 [![CI](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -64,7 +65,9 @@ P_i       = (形状, 位置, 大きさ, 回転, 色, α)
 </p>
 <p align="center"><sub>
 同一入力・同一シード(=同一の探索過程)で配色制約だけを差し替えた例。幾何は共通で、色だけが変わる
-</sub></p>上記 4 実装のいずれにも
+</sub></p>
+
+上記 4 実装のいずれにも
 パレット・グラデーション制約は文書化されていない（Geometrize は `customEnergyFunction`
 スクリプトフックがあるため、書けば近いことは実現できる）。
 
