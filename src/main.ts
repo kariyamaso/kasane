@@ -116,6 +116,12 @@ let stops: string[] = [...DEFAULT_CONFIG.color.stops]
  */
 let worker: Worker | null = null
 let workerGen = 0
+/** 実行中(または直近の実行)の設定の指紋。steps を除いて比較する */
+let runCfgJson = ''
+
+function cfgFingerprint(cfg: Config): string {
+  return JSON.stringify({ ...cfg, steps: 0 })
+}
 
 function ensureWorker(): Worker {
   if (!worker) {
@@ -462,6 +468,7 @@ function prepareOutputCanvas() {
 function start() {
   if (!state.bitmap) return
   const cfg = readConfig()
+  runCfgJson = cfgFingerprint(cfg)
   computePixels(cfg.resolution)
   state.totalSteps = cfg.steps
   state.bg =
@@ -710,7 +717,21 @@ el.run.onclick = () => {
   if (!state.bitmap) return
   if (state.running) {
     worker?.postMessage({ type: 'pause' } satisfies ToWorker)
-  } else if (worker && state.records.length > 0 && state.records.length < state.totalSteps) {
+    return
+  }
+  // 図形数以外の設定が同じで、目標図形数が現在より先なら「続きから追加」。
+  // 完了後に N を増やした場合も再計算せずに継続し、
+  // 一時停止中に設定を変えた場合はここに落ちず新規実行になる(旧設定の続行バグ対策)。
+  const cfg = readConfig()
+  if (
+    worker &&
+    state.records.length > 0 &&
+    cfg.steps > state.records.length &&
+    cfgFingerprint(cfg) === runCfgJson
+  ) {
+    state.totalSteps = cfg.steps
+    el.statTotal.textContent = String(cfg.steps)
+    worker.postMessage({ type: 'steps', steps: cfg.steps } satisfies ToWorker)
     worker.postMessage({ type: 'run' } satisfies ToWorker)
     state.running = true
     state.follow = true

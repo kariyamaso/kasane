@@ -49,6 +49,10 @@ self.onmessage = (ev: MessageEvent<ToWorker>) => {
           post({ type: 'paused', gen })
         }
         break
+      case 'steps':
+        // 完了後・一時停止中でもモデルは残っているので、目標だけ引き上げれば続きから足せる
+        if (cfg) cfg.steps = msg.steps
+        break
       case 'abort':
         running = false
         loopId++

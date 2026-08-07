@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1013'/%3E%3Cpolygon points='6,26 16,6 26,26' fill='%23f2b705' fill-opacity='.8'/%3E%3Ccircle cx='20' cy='13' r='8' fill='%234d8df6' fill-opacity='.6'/%3E%3C/svg%3E"
+    />
+    <title>Kasane 襲 — 動画:寿命と軌跡を持つ図形で映像を構成する</title>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="panel">
+        <h1>
+          Kasane 襲 <small>Temporally Coherent Primitive Video</small>
+        </h1>
+        <div class="pagenav"><a href="./index.html">← 静止画版</a></div>
+
+        <details open>
+          <summary>1. 動画</summary>
+          <div class="body">
+            <label class="drop" id="drop">
+              <input type="file" id="file" accept="video/*" hidden />
+              <span id="dropLabel">クリック / ドロップで動画を読み込む</span>
+            </label>
+            <div class="hint" id="vidInfo">未読み込み</div>
+            <label class="row">
+              <span>サンプリング</span>
+              <select id="fps">
+                <option value="6">6 fps</option>
+                <option value="8">8 fps</option>
+                <option value="12" selected>12 fps</option>
+                <option value="15">15 fps</option>
+                <option value="24">24 fps</option>
+              </select>
+            </label>
+            <label class="row">
+              <span>最大フレーム</span>
+              <input type="number" id="maxFrames" min="8" max="900" step="8" value="240" />
+            </label>
+            <label class="row">
+              <span>計算解像度</span>
+              <select id="resolution">
+                <option value="128">128 px(高速)</option>
+                <option value="192" selected>192 px</option>
+                <option value="256">256 px</option>
+                <option value="384">384 px(低速)</option>
+              </select>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>2. 図形</summary>
+          <div class="body">
+            <div class="chips" id="shapeChips"></div>
+            <div class="sub">正多角形の辺数</div>
+            <div class="chips small" id="sideChips"></div>
+            <div class="sub">サイズ範囲(外接円半径 ／ 長辺比)</div>
+            <label class="row">
+              <span>最小</span>
+              <input type="range" id="sizeMin" min="1" max="800" step="1" value="15" />
+              <output id="sizeMinOut"></output>
+            </label>
+            <label class="row">
+              <span>最大</span>
+              <input type="range" id="sizeMax" min="1" max="800" step="1" value="300" />
+              <output id="sizeMaxOut"></output>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>3. 構成</summary>
+          <div class="body">
+            <label class="row">
+              <span>図形数 M</span>
+              <input type="number" id="steps" min="8" max="1000" step="10" value="150" />
+            </label>
+            <label class="row">
+              <span>不透明度 α</span>
+              <input type="range" id="alpha" min="8" max="255" value="128" />
+              <output id="alphaOut"></output>
+            </label>
+            <label class="row">
+              <span>背景</span>
+              <select id="bg">
+                <option value="average">先頭フレームの平均色</option>
+                <option value="white">白</option>
+                <option value="black">黒</option>
+                <option value="custom">指定色</option>
+              </select>
+              <input type="color" id="bgColor" value="#ffffff" />
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>4. 配色</summary>
+          <div class="body">
+            <label class="row">
+              <span>モード</span>
+              <select id="colorMode">
+                <option value="auto">元映像から自動抽出</option>
+                <option value="gradient">グラデーション</option>
+                <option value="palette">固定パレット</option>
+                <option value="mono">モノクロ / 単色階調</option>
+              </select>
+            </label>
+            <div id="mappingRow" class="row">
+              <span>写像</span>
+              <select id="colorMapping">
+                <option value="nearest">最近傍(色相を尊重)</option>
+                <option value="luma">輝度マッピング</option>
+              </select>
+            </div>
+            <div id="stopsWrap">
+              <div class="sub">
+                色ストップ
+                <button class="mini" id="addStop">＋</button>
+              </div>
+              <div class="stops" id="stops"></div>
+              <div class="presets" id="presets"></div>
+            </div>
+            <label class="row">
+              <span>元色ブレンド</span>
+              <input type="range" id="blend" min="0" max="100" value="0" />
+              <output id="blendOut"></output>
+            </label>
+            <div class="ramp" id="ramp"></div>
+          </div>
+        </details>
+
+        <details open>
+          <summary>5. 時間的一貫性</summary>
+          <div class="body">
+            <label class="row">
+              <span>滑らかさ λ_v</span>
+              <input type="range" id="lambdaV" min="0" max="40" step="1" value="8" />
+              <output id="lambdaVOut"></output>
+            </label>
+            <label class="row">
+              <span>最小寿命 L</span>
+              <input type="number" id="minLife" min="1" max="60" value="4" />
+            </label>
+            <label class="row">
+              <span>振り付け k</span>
+              <input type="number" id="fade" min="0" max="20" value="3" />
+            </label>
+            <label class="row">
+              <span>誕生上限 B</span>
+              <input type="number" id="birthBudget" min="0" max="30" value="3" />
+            </label>
+            <label class="row">
+              <span>退場閾値 τ</span>
+              <input type="number" id="tauDeath" min="0" max="200" value="10" />
+            </label>
+            <label class="row">
+              <span>再フィット率</span>
+              <input type="range" id="refitFrac" min="0" max="100" value="40" />
+              <output id="refitFracOut"></output>
+            </label>
+            <label class="row">
+              <span>カット閾値</span>
+              <input type="range" id="cutThreshold" min="4" max="40" value="14" />
+              <output id="cutOut"></output>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="denoise" checked /><span>時間バイラテラル前処理</span>
+            </label>
+            <label class="row">
+              <span>RDP 許容 ε</span>
+              <input type="range" id="rdpEps" min="0" max="300" step="5" value="75" />
+              <output id="rdpEpsOut"></output>
+            </label>
+            <div class="hint">
+              λ_v は輸送予測からの逸脱ペナルティ、L と k が明滅を抑えます。
+              λ_v = 0, L = 1, k = 0 が「フレーム独立処理」に相当します。
+              誕生の閾値は退場の4倍(ヒステリシス)。
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>6. 探索パラメータ</summary>
+          <div class="body">
+            <label class="row">
+              <span>ランダム候補数</span>
+              <input type="number" id="tries" min="4" max="1000" step="4" value="48" />
+            </label>
+            <label class="row">
+              <span>山登り停滞許容</span>
+              <input type="number" id="age" min="1" max="500" step="1" value="24" />
+            </label>
+            <label class="row">
+              <span>再フィット停滞</span>
+              <input type="number" id="refitAge" min="1" max="100" step="1" value="10" />
+            </label>
+            <label class="row">
+              <span>乱数シード</span>
+              <input type="number" id="seed" min="1" step="1" value="1" />
+            </label>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="run" class="primary" disabled>実行</button>
+          <button id="reset" class="ghost" disabled>リセット</button>
+        </div>
+
+        <details open>
+          <summary>7. 書き出し</summary>
+          <div class="body">
+            <label class="row">
+              <span>出力幅</span>
+              <input type="number" id="outW" min="64" max="4096" step="64" value="1024" />
+            </label>
+            <div class="actions wrap">
+              <button class="ghost" id="expAnimSvg" disabled>アニメSVG</button>
+              <button class="ghost" id="expJson" disabled>JSON</button>
+            </div>
+            <div class="actions wrap">
+              <button class="ghost" id="expPng" disabled>PNG(現フレーム)</button>
+              <button class="ghost" id="expSvg" disabled>SVG(現フレーム)</button>
+            </div>
+            <div class="hint" id="expHint">
+              アニメSVG / JSON は RDP でキーフレーム化した軌跡を書き出します。
+            </div>
+          </div>
+        </details>
+      </aside>
+
+      <main class="stage">
+        <div class="stats">
+          <div><b id="statFrame">0</b><span>/ <i id="statTotal">0</i> フレーム</span></div>
+          <div><b id="statRmse">—</b><span>RMSE</span></div>
+          <div><b id="statAlive">—</b><span>図形</span></div>
+          <div><b id="statChurn">—</b><span>入替/フレーム</span></div>
+          <div><b id="statTime">—</b><span>経過</span></div>
+          <div class="spacer"></div>
+          <div class="viewtabs" id="viewTabs">
+            <button data-view="split" class="on">並列</button>
+            <button data-view="result">結果</button>
+            <button data-view="target">元映像</button>
+          </div>
+        </div>
+
+        <div class="canvases" id="canvases">
+          <figure id="figTarget"><canvas id="srcCanvas"></canvas><figcaption>元映像(処理解像度)</figcaption></figure>
+          <figure id="figResult"><canvas id="outCanvas"></canvas><figcaption id="outCaption">近似結果</figcaption></figure>
+        </div>
+
+        <div class="timeline">
+          <button id="play" class="mini play" disabled>▶</button>
+          <input type="range" id="scrub" min="0" max="0" value="0" disabled />
+          <span class="tl-label" id="scrubLabel">0</span>
+        </div>
+
+        <p class="footnote">
+          𝒫 = {(θ<sub>i</sub>(·), c<sub>i</sub>(·), α<sub>i</sub>, b<sub>i</sub>, d<sub>i</sub>)} ／
+          R<sub>t</sub> = Composite<sub>i: b<sub>i</sub>≤t&lt;d<sub>i</sub></sub>(θ<sub>i</sub>(t), c<sub>i</sub>(t), α<sub>i</sub>)
+          — 疎 Lucas–Kanade で図形を輸送し、warm start の山登りで再フィット、
+          寄与の低い図形はヒステリシス付きで入れ替えます。
+        </p>
+      </main>
+    </div>
+    <script type="module" src="/src/video/main.ts"></script>
+  </body>
+</html>

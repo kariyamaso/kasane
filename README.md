@@ -6,7 +6,7 @@
 [![CI](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Demo: https://kariyamaso.github.io/kasane/**
+**Demo: https://kariyamaso.github.io/kasane/**（動画版: [/video.html](https://kariyamaso.github.io/kasane/video.html)）
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,
@@ -118,9 +118,49 @@ P_i       = (形状, 位置, 大きさ, 回転, 色, α)
   - `モノクロ / 単色階調` — 2色ランプへ輝度で写像
   - `元色ブレンド` — 制約色と元色を任意比率で混ぜられる(0% = 完全にパレット / 100% = 元色)
 - **中間状態**: タイムラインスライダーで任意ステップの状態を再描画、再生ボタンで構成過程をアニメーション
+- **続きから追加**: 実行完了後(や一時停止中)に図形数 N だけを増やして実行すると、再計算せずに N+1 個目から追加する。他の設定を変えた場合は新規実行になる
 - **表示**: 並列 / 結果のみ / 元画像 / 差分ヒートマップ
 - **書き出し**: PNG(任意解像度) / SVG(ベクタ、無限に拡大可) / JSON(図形列そのもの)
 - **再現性**: 乱数シード固定。同じ設定なら常に同じ結果
+
+## 動画版 — 寿命と軌跡を持つ図形で映像を構成する
+
+`video.html` は静止画のパイプラインを時間方向へ拡張したもの。出力表現は
+「フレームごとの図形集合」ではなく**寿命と軌跡を持つ図形の集合**で、
+z 順(添字)は不変とする。
+
+```
+𝒫 = { (θ_i(·), c_i(·), α_i, b_i, d_i) }_{i=1..M}     [b_i, d_i) = 寿命
+R_t(𝒫) = Composite_{i: b_i ≤ t < d_i} (θ_i(t), c_i(t), α_i)
+
+L(𝒫) = Σ_t ‖I_t − R_t‖²                    … 忠実度
+     + λ_v Σ_i Σ_t ‖θ_i(t+1) − θ_i(t)‖²_Λ  … 軌跡の滑らかさ
+     + λ_M M                                … 簡潔さ
+     s.t. d_i − b_i ≥ L_min
+```
+
+フレーム独立に貪欲法を回すと明滅する。原因は貪欲追加法が argmax の離散選択で
+**入力に対して不連続**なことなので、前フレームの解の近傍に解を拘束する
+warm start 型の逐次ソルバにしている(λ_v = 0, L_min = 1, k = 0 がフレーム独立処理に相当)。
+
+| 層 | 処理 |
+| --- | --- |
+| Layer 0 前処理 | 3フレーム時間バイラテラル(動きのある画素は混ぜない)+ フレーム間 RMSE によるカット検出。カットをまたいで輸送しない |
+| Layer 1 輸送 | 各図形の支持領域から最大28点をサンプルし、疎なピラミッド型 Lucas–Kanade → 2×3 アフィンを最小二乗フィット → 図形の自由度へ射影(円なら平行移動+半径、角度持ちは回転も)。密フロー不要で O(M×数十点) |
+| Layer 2 再フィット | z順の下から上への1掃引で合成しつつ、支持領域残差の大きい上位(既定40%)だけ warm start の山登り。スコアには λ_v·n·‖θ−θ̂‖²_Λ を直接足す(Λ は角度を弧長換算して px に揃える対角重み)。最適色は毎フレーム閉形式で解き直し、色の慣性で混ぜる |
+| Layer 3 生死 | 寄与(被覆1画素あたりのSSE改善)が τ_death 未満 × 2フレーム連続で退場、残差への貪欲追加は 1フレーム B 個まで。**τ_birth = 4·τ_death のヒステリシス**が閾値付近の明滅を防ぐ。生死は瞬時にせず k フレームかけて α をランプ(振り付け) |
+| Layer 4 キーフレーム化 | 全フレーム処理後、各 θ_i(t) にパラメータ空間の Ramer–Douglas–Peucker(許容 ε、角度は unwrap + 弧長換算)を走らせ、毎フレーム値を疎なキーフレーム列へ圧縮 |
+
+**書き出し**: キーフレーム化した軌跡をそのまま **SMIL アニメーション SVG**
+(`<animate>` で幾何・色・不透明度を補間、寿命外は不透明度0)と **JSON** に出力する。
+現フレームの PNG / 静止 SVG も可。
+
+合成動画(動く円、40フレーム、図形30個)での実測: churn 0.5個/フレーム、
+トラック平均寿命 17フレーム、RDP でサンプル数の約55%にキー圧縮。
+
+**未実装(設計上の残り)**: warped error ρ による定量評価(密フローが要る)、
+Kフレームごとのアンカー+双方向伝播、平滑化→再フィットの整合1周、
+提案分布の学習(残差マップ→配置ヒートマップの CNN)。現状は前向き因果処理のみ。
 
 ## 使い方
 
@@ -138,6 +178,8 @@ npm run build
 npx vite preview --port 4173 &
 CHROME_PATH=/path/to/chrome node test/smoke.mjs   # tmp/ にスクリーンショットが出る
 CHROME_PATH=/path/to/chrome node test/size.mjs
+CHROME_PATH=/path/to/chrome node test/video.mjs   # 動画版(合成webmを生成して完走・churn・アニメSVGを検証)
+CHROME_PATH=/path/to/chrome node test/rerun.mjs   # 図形数変更→再実行(続きから追加/新規実行の分岐)を検証
 ```
 
 ## サイズの制御
@@ -222,9 +264,19 @@ src/
     worker.ts          最適化ワーカー
   ui/
     render.ts          Canvas 2D への高解像度描画
+  video/               動画版(video.html)
+    types.ts           トラック・キーフレーム・設定・Worker メッセージの型
+    flow.ts            疎ピラミッドLK・アフィンフィット・図形自由度への射影・Λ距離
+    model.ts           逐次ソルバ(輸送 → 再フィット → 生死 → 誕生)
+    keyframes.ts       パラメータ空間 RDP によるキーフレーム化
+    animsvg.ts         SMIL アニメーション SVG 書き出し
+    worker.ts          動画ワーカー(カット検出・時間バイラテラルを含む)
+    main.ts            動画ページの UI・フレーム抽出・再生
 test/
   smoke.mjs            Playwright によるヘッドレス動作確認(4通りの図形×配色で完走と誤差低下を検証)
   size.mjs             サイズ範囲が全ステップで守られているかを JSON 書き出しから検証
+  video.mjs            動画版の動作確認(合成webmで完走・churn・キーフレーム化・アニメSVGを検証)
+  rerun.mjs            図形数変更→再実行の分岐(続きから追加 / 新規実行)を検証
 ```
 
 ## 拡張の入口

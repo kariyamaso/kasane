@@ -142,6 +142,8 @@ export type ToWorker =
   | { type: 'run' }
   | { type: 'pause' }
   | { type: 'abort' }
+  /** 図形数だけを引き上げて続きから追加する(モデルは保持したまま) */
+  | { type: 'steps'; steps: number }
 
 export type FromWorker =
   | { type: 'ready'; gen: number; bg: RGB; score: number }

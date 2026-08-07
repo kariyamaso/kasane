@@ -59,6 +59,20 @@ body {
   margin-top: 3px;
 }
 
+.pagenav {
+  font-size: 11px;
+  margin: -10px 0 12px;
+}
+
+.pagenav a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.pagenav a:hover {
+  text-decoration: underline;
+}
+
 details {
   border: 1px solid var(--line);
   border-radius: var(--radius);
