@@ -17,6 +17,9 @@
   <a href="https://kariyamaso.github.io/kasane/?lang=ja"><img src="docs/assets/btn-demo.svg" width="280" alt="▶ 静止画デモを開く" /></a>&nbsp;
   <a href="https://kariyamaso.github.io/kasane/video.html?lang=ja"><img src="docs/assets/btn-video.svg" width="280" alt="▶ 動画デモを開く" /></a>
 </p>
+<p align="center"><sub>
+▲ Use the App — クリックするとブラウザでそのまま動く Web アプリが開きます(インストール不要・完全クライアントサイド)
+</sub></p>
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,
