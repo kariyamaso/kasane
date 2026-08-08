@@ -33,14 +33,7 @@ translucent geometric shapes while keeping their colors under palette control.
 
 The app reconstructs a target image step by step from simple shapes —
 triangles, quads, circles, regular polygons, line segments, Bézier strokes —
-rendered semi-transparently on top of each other. With few shapes N only the
-rough forms appear; as N grows, detail is recovered
-(coarse-to-fine / progressive approximation).
-
-```
-Î_N(x, y) = Composite(P_1, P_2, …, P_N)
-P_i       = (shape, position, size, rotation, color, α)
-```
+rendered semi-transparently on top of each other.
 
 ## Algorithm
 
@@ -75,7 +68,7 @@ Each step commits one shape.
 
 - **Target image**: drag & drop / file picker / built-in sample
 - **Shapes**: triangle, free quad, rectangle (axis-aligned/rotated), ellipse (axis-aligned/rotated), circle, regular polygon (selectable sides), line segment, quadratic Bézier. Kinds can be mixed
-- **Shape size**: min/max sliders as a fraction of the long side. See "Size control" below
+- **Shape size**: min/max sliders as a fraction of the long side (circumradius)
 - **Color**
   - `Auto from source` — use the optimal color as-is (most faithful)
   - `Gradient` — project onto a ramp built from any number of stops; mapping is "nearest (respect hue)" or "luma"
@@ -126,20 +119,6 @@ each solution to the neighborhood of the previous frame's solution
 | Layer 3 birth/death  | A shape whose contribution (SSE improvement per covered pixel) stays below τ_death for 2 consecutive frames retires; greedy additions against the residual are capped at B per frame. The **hysteresis τ_birth = 4·τ_death** prevents flicker near the threshold. Birth and death ramp α over k frames (choreography) |
 | Layer 4 keyframing   | After all frames, run parameter-space Ramer–Douglas–Peucker on each θ_i(t) (tolerance ε; angles unwrapped and arc-length weighted), compressing per-frame values into sparse keyframes                                                                                                    |
 
-**Export**: the keyframed trajectories go straight to **SMIL-animated SVG**
-(`<animate>` interpolates geometry, color, and opacity; opacity 0 outside the
-lifetime) and **JSON**. PNG / static SVG of the current frame also available.
-
-Measured on a synthetic clip (moving circle, 40 frames, 30 shapes):
-churn 0.5 shapes/frame, mean track lifetime 17 frames, RDP compresses to ~55%
-of the samples.
-
-**Not yet implemented (remaining from the design)**: quantitative evaluation
-via warped error ρ (needs dense flow), anchors every K frames + bidirectional
-propagation, one smooth-then-refit consistency pass, learned proposal
-distributions (residual map → placement heatmap CNN). Processing is currently
-forward-causal only.
-
 ## Usage
 
 ```bash
@@ -159,51 +138,6 @@ CHROME_PATH=/path/to/chrome node test/size.mjs
 CHROME_PATH=/path/to/chrome node test/video.mjs   # video mode (generates a synthetic webm; checks completion, churn, animated SVG)
 CHROME_PATH=/path/to/chrome node test/rerun.mjs   # verifies the rerun branching (extend vs fresh run)
 ```
-
-## Size control
-
-Size is treated throughout as the **circumradius R** (distance from the
-centroid to the farthest point). The UI "size range" slider specifies lower
-and upper bounds **as a fraction of the image's long side** (default 1.5%–30%).
-The bounds apply to both generation and mutation, so they hold across the
-entire search.
-
-| Shape                 | Interpretation of R                                                                            |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| Triangle / free quad  | Max distance from centroid to a vertex                                                           |
-| Rect / rotated rect   | Half the diagonal                                                                                |
-| Ellipse / rotated     | Semi-major axis                                                                                  |
-| Circle / regular poly | Radius / circumradius                                                                            |
-| Line / Bézier         | Max distance of endpoints (and control point) from their centroid; stroke width derives from `[0.3·minR, 0.25·maxR]` |
-
-Out-of-range shapes are pushed back by `constrainSize()`: free-vertex shapes
-scale about their centroid, radial shapes scale preserving aspect ratio, so
-forms never collapse.
-
-Examples (sample image, 80 shapes, 256px, all shape kinds):
-
-| Setting            | Result                                                                  |
-| ------------------ | ------------------------------------------------------------------------ |
-| 1.0%–3.0%          | Stipple / pointillism. RMSE 0.185 (few shapes cannot cover the canvas)    |
-| 1.5%–30% (default) | Standard. RMSE 0.047                                                      |
-| 35%–60%            | Bold planar composition, abstract look. RMSE 0.069                        |
-
-For small-shape-only compositions raise N (1000+); for large shapes keep N
-low (50–150) and lower α to blend.
-
-## Internal size-related constants
-
-Where to look when the sliders are not enough (`src/core/shapes.ts`).
-`u = long side of the compute resolution`.
-
-| Constant           | Default                             | Meaning                                     |
-| ------------------ | ----------------------------------- | ------------------------------------------- |
-| `sigma`            | `min(u·0.06, maxR·0.6) · temp`      | Std-dev of position/radius mutation jitter  |
-| `strokeRange()`    | `[0.3·minR, 0.25·maxR]`             | Stroke width range for line/Bézier          |
-| Coordinate clamp   | `[-0.15w, 1.15w] × [-0.15h, 1.15h]` | Allowed off-canvas overhang                 |
-| Angle jitter       | `N(0, 0.5·temp)` rad                | Rotation mutation width                     |
-| `halfExtents()`    | `θ ∈ [0.24, π/2−0.24]`              | Allowed rectangle aspect-ratio range        |
-| `ELLIPSE_SEGMENTS` | 40                                  | Polygonalization of rotated ellipses        |
 
 ## Parameter intuitions
 
@@ -264,13 +198,6 @@ test/
 scripts/
   readme-assets.mjs    Generates the README SVGs (title/hero/palette/video demo) with the app's own pipeline
 docs/assets/           Output of the script above (referenced from the README)
-```
-
-Every image in this README is Kasane's own output and can be regenerated with
-(seeds are fixed, so it is deterministic):
-
-```bash
-CHROME_PATH=/path/to/chrome node scripts/readme-assets.mjs
 ```
 
 ## Related projects
