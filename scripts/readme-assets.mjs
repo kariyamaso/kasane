@@ -513,6 +513,96 @@ writeFileSync(OUT + 'video-demo.svg', videoSvg.svg)
 console.log(`video-demo.svg    軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`)
 
 /* ------------------------------------------------------------------ */
+/* 3b. OGP カード: リンクプレビュー用 1200×630 JPEG(og:image は SVG 不可) */
+/* ------------------------------------------------------------------ */
+
+const ogpB64 = await page.evaluate(async () => {
+  const { Model } = await import('/src/core/model.ts')
+  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+  const { renderUpTo } = await import('/src/ui/render.ts')
+
+  // ワードマーク + 下段に山と日輪のシーン
+  const c = document.createElement('canvas')
+  c.width = 1200
+  c.height = 630
+  const g = c.getContext('2d')
+  g.fillStyle = '#0e1013'
+  g.fillRect(0, 0, 1200, 630)
+  const sky = g.createLinearGradient(0, 300, 0, 630)
+  sky.addColorStop(0, '#0e1013')
+  sky.addColorStop(0.45, '#31538c')
+  sky.addColorStop(0.8, '#c65f4a')
+  sky.addColorStop(1, '#e8a87c')
+  g.fillStyle = sky
+  g.fillRect(0, 300, 1200, 330)
+  g.fillStyle = '#f2b705'
+  g.beginPath()
+  g.arc(920, 430, 52, 0, Math.PI * 2)
+  g.fill()
+  const ridge = (baseY, amp, freq, phase, color) => {
+    g.fillStyle = color
+    g.beginPath()
+    g.moveTo(0, 630)
+    for (let x = 0; x <= 1200; x += 8) {
+      const y = baseY - amp * Math.abs(Math.sin((x / 1200) * Math.PI * freq + phase))
+      g.lineTo(x, y)
+    }
+    g.lineTo(1200, 630)
+    g.closePath()
+    g.fill()
+  }
+  ridge(600, 120, 2.4, 0.8, '#2c3a60')
+  ridge(625, 90, 3.4, 2.6, '#1a2340')
+  ridge(636, 55, 4.6, 4.4, '#0d1020')
+
+  const grad = g.createLinearGradient(180, 0, 1020, 0)
+  grad.addColorStop(0, '#f2b705')
+  grad.addColorStop(0.55, '#ffd97a')
+  grad.addColorStop(1, '#4d8df6')
+  g.fillStyle = grad
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.font = '900 172px "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif'
+  g.fillText('KASANE', 505, 170)
+  g.font = '900 228px "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif'
+  g.fillText('襲', 1030, 162)
+
+  const w = 720
+  const h = 378
+  const s = document.createElement('canvas')
+  s.width = w
+  s.height = h
+  const sg = s.getContext('2d', { willReadFrequently: true })
+  sg.drawImage(c, 0, 0, w, h)
+  const pixels = sg.getImageData(0, 0, w, h).data
+
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    steps: 1400,
+    alpha: 200,
+    shapes: ['triangle'],
+    sizeMin: 0.0035,
+    sizeMax: 0.09,
+    randomTries: 72,
+    hillClimbAge: 28,
+    seed: 17,
+    bg: 'custom',
+    bgColor: '#0e1013',
+  }
+  const model = new Model(w, h, pixels, cfg)
+  while (model.records.length < cfg.steps) {
+    if (!model.step()) break
+  }
+  const out = document.createElement('canvas')
+  out.width = 1200
+  out.height = 630
+  renderUpTo(out.getContext('2d'), model.records, model.records.length, model.bg, 1200, 630, 1200 / w)
+  return out.toDataURL('image/jpeg', 0.88).split(',')[1]
+})
+writeFileSync(ROOT + 'public/ogp.jpg', Buffer.from(ogpB64, 'base64'))
+console.log('ogp.jpg           1200×630 リンクプレビュー用カード')
+
+/* ------------------------------------------------------------------ */
 /* 4. favicon: ロゴ原本を 128px へ縮小(アプリのタブアイコン)             */
 /* ------------------------------------------------------------------ */
 
