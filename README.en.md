@@ -81,14 +81,13 @@ Each step commits one shape.
 - **Export**: PNG (any resolution) / SVG (vector, infinitely scalable) / JSON (the shape sequence itself)
 - **Reproducibility**: fixed random seed — identical settings always give identical results
 
-## Video mode — composing footage from shapes with lifetimes and trajectories
+## Video mode
 
 <p align="center">
   <img src="docs/assets/video-demo.svg" width="100%" alt="An animated SVG reconstructing a synthetic scene of a sun arcing across the sky from shape trajectories" />
 </p>
 <p align="center"><sub>
 Real output of the video pipeline (36 frames, 90 shapes). Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
-This SVG is itself the Layer 4 keyframe export described below.
 </sub></p>
 
 `video.html` extends the image pipeline through time. The output
