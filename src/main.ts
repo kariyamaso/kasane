@@ -310,7 +310,7 @@ function syncSizeUi(driver?: 'min' | 'max') {
 
 function readConfig(): Config {
   return {
-    steps: clampNum(el.steps, 1, 20000),
+    steps: clampNum(el.steps, 1, 1000000),
     alpha: Number(el.alpha.value),
     optimizeAlpha: el.optAlpha.checked,
     resolution: Number(el.resolution.value),
