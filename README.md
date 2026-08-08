@@ -3,7 +3,6 @@
 </p>
 
 <p align="center"><b>Layered Geometric Primitive-Based Image Approximation</b></p>
-<p align="center"><sub>タイトルも Kasane の出力(三角形900枚)。文字画像をプリミティブ近似し、構成過程をループ再生しています</sub></p>
 
 <p align="center">
   <img src="docs/assets/hero.svg" width="100%" alt="240枚の半透明三角形が1枚ずつ重なって山と日輪の風景が立ち上がる(ループ)" />
@@ -12,7 +11,7 @@
 [![CI](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Demo: https://kariyamaso.github.io/kasane/**（動画版: [/video.html](https://kariyamaso.github.io/kasane/video.html)）
+**Demo:** [kariyamaso.github.io/kasane](https://kariyamaso.github.io/kasane/)（動画版: [/video.html](https://kariyamaso.github.io/kasane/video.html)）
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,

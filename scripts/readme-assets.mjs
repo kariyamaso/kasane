@@ -7,6 +7,8 @@
  *   docs/assets/palettes.svg  同一入力・同一探索で配色制約だけを差し替えた4連
  *   docs/assets/video-demo.svg 動画パイプラインのアニメSVG出力そのもの
  *
+ * また public/favicon.png(アプリのタブアイコン)も docs/assets/logo.jpg から生成する。
+ *
  * 使い方: CHROME_PATH=/path/to/chrome node scripts/readme-assets.mjs
  * (vite dev を内部で起動し、ページ内で /src のモジュールを直接 import する)
  */
@@ -428,6 +430,35 @@ const videoSvg = await page.evaluate(async () => {
 
 writeFileSync(OUT + 'video-demo.svg', videoSvg.svg)
 console.log(`video-demo.svg    軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`)
+
+/* ------------------------------------------------------------------ */
+/* 4. favicon: ロゴ原本を 128px へ縮小(アプリのタブアイコン)             */
+/* ------------------------------------------------------------------ */
+
+const faviconB64 = await page.evaluate(async () => {
+  const img = new Image()
+  img.src = '/docs/assets/logo.jpg'
+  await img.decode()
+  const c = document.createElement('canvas')
+  c.width = 128
+  c.height = 128
+  // 中央の正方形を切り出してから縮小(アスペクト比を保つ)
+  const s = Math.min(img.width, img.height)
+  c.getContext('2d').drawImage(
+    img,
+    (img.width - s) / 2,
+    (img.height - s) / 2,
+    s,
+    s,
+    0,
+    0,
+    128,
+    128,
+  )
+  return c.toDataURL('image/png').split(',')[1]
+})
+writeFileSync(ROOT + 'public/favicon.png', Buffer.from(faviconB64, 'base64'))
+console.log('favicon.png       docs/assets/logo.jpg → 128px')
 
 /* ---- サイズと妥当性の確認 ---- */
 const { statSync } = await import('node:fs')
