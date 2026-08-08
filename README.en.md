@@ -78,11 +78,14 @@ Each step commits one shape.
 ## Video mode
 
 <p align="center">
-  <img src="docs/assets/video-demo.svg" width="100%" alt="Eadweard Muybridge's The Horse in Motion reconstructed from shape trajectories" />
+  <img src="docs/assets/video-demo.svg" width="30%" alt="Eadweard Muybridge's The Horse in Motion reconstructed from shape trajectories" />
+  <img src="docs/assets/video-demo-sun.svg" width="67%" alt="A synthetic scene of a sun arcing across the sky, reconstructed from shape trajectories" />
 </p>
 <p align="center"><sub>
-Real output of the video pipeline: Eadweard Muybridge's <i>The Horse in Motion</i> (1878, public domain),
-15 frames, 140 shapes. Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
+Both are real output of the video pipeline. Left: Eadweard Muybridge's <i>The Horse in Motion</i>
+(1878, public domain; 15 frames, 140 shapes, luma-projected onto a navy→white gradient).
+Right: a synthetic sun-arc scene (36 frames, 90 shapes).
+Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
 </sub></p>
 
 | Layer                | Processing                                                                                                                                                                                                                                                                             |

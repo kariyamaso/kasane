@@ -584,6 +584,13 @@ const videoSvg = await page.evaluate(async () => {
     randomTries: 48,
     hillClimbAge: 20,
     seed: 4,
+    // 紺→青→白のグラデーションへ輝度で射影(サイアノタイプ調)
+    color: {
+      mode: 'gradient',
+      stops: ['#0a1f44', '#3e6db5', '#f5f9ff'],
+      mapping: 'luma',
+      blend: 0,
+    },
   }
   const model = new VideoModel(w, h, frames[0], cfg)
   let churn = 0
@@ -604,6 +611,88 @@ writeFileSync(OUT + 'video-demo.svg', videoSvg.svg)
 console.log(
   `video-demo.svg    ${videoSvg.frames}フレーム 軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`,
 )
+
+/* ------------------------------------------------------------------ */
+/* 3c. 動画デモ2: 日輪が渡る合成シーン(横長)                            */
+/* ------------------------------------------------------------------ */
+
+const sunSvg = await page.evaluate(async () => {
+  const { VideoModel } = await import('/src/video/model.ts')
+  const { keyframeTracks } = await import('/src/video/keyframes.ts')
+  const { tracksToAnimatedSvg } = await import('/src/video/animsvg.ts')
+  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+  const { DEFAULT_VIDEO_EXTRA } = await import('/src/video/types.ts')
+
+  const w = 360
+  const h = 108
+  const F = 36
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  const g = c.getContext('2d', { willReadFrequently: true })
+
+  const makeFrame = (t) => {
+    const u = t / (F - 1)
+    const sky = g.createLinearGradient(0, 0, 0, h)
+    sky.addColorStop(0, '#141a33')
+    sky.addColorStop(0.55, '#31538c')
+    sky.addColorStop(0.85, '#c65f4a')
+    g.fillStyle = sky
+    g.fillRect(0, 0, w, h)
+    // 日輪が弧を描いて渡る
+    const sx = 40 + u * (w - 80)
+    const sy = 66 - Math.sin(u * Math.PI) * 38
+    g.fillStyle = '#f2b705'
+    g.beginPath()
+    g.arc(sx, sy, 15, 0, Math.PI * 2)
+    g.fill()
+    const ridge = (baseY, amp, freq, phase, color) => {
+      g.fillStyle = color
+      g.beginPath()
+      g.moveTo(0, h)
+      for (let x = 0; x <= w; x += 4) {
+        const y = baseY - amp * Math.abs(Math.sin((x / w) * Math.PI * freq + phase))
+        g.lineTo(x, y)
+      }
+      g.lineTo(w, h)
+      g.closePath()
+      g.fill()
+    }
+    ridge(h * 0.92, 34, 2.6, 0.8, '#1a2340')
+    ridge(h * 1.0, 22, 3.8, 3.4, '#0d1020')
+    return g.getImageData(0, 0, w, h).data
+  }
+
+  const frames = []
+  for (let t = 0; t < F; t++) frames.push(makeFrame(t))
+
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    ...DEFAULT_VIDEO_EXTRA,
+    steps: 90,
+    alpha: 160,
+    shapes: ['triangle', 'circle'],
+    sizeMin: 0.02,
+    sizeMax: 0.3,
+    randomTries: 48,
+    hillClimbAge: 20,
+    seed: 3,
+  }
+  const model = new VideoModel(w, h, frames[0], cfg)
+  let churn = 0
+  for (let t = 0; t < F; t++) {
+    const res = model.processFrame(frames[t], false)
+    if (t > 0) churn += res.stats.births + res.stats.deaths
+  }
+  const tracks = keyframeTracks(model.finish(F), cfg.rdpEpsilon)
+  return {
+    svg: tracksToAnimatedSvg(tracks, F, 12, model.bg, w, h, 1200),
+    tracks: tracks.length,
+    churn: churn / (F - 1),
+  }
+})
+writeFileSync(OUT + 'video-demo-sun.svg', sunSvg.svg)
+console.log(`video-demo-sun.svg 軌跡${sunSvg.tracks}本 churn=${sunSvg.churn.toFixed(2)}/frame`)
 
 /* ------------------------------------------------------------------ */
 /* 3a. セクション区切りバー: 襲の色目(重ねた色帯)を三角形で近似した帯     */
