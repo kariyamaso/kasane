@@ -4,7 +4,9 @@
  * 合成して gifenc でエンコードする(SVG 側の見た目と同一のタイムライン)。
  *
  * 使い方: CHROME_PATH=/path/to/chrome node scripts/example-gif.mjs
- * 出力: docs/assets/example-gallery.gif
+ * 出力:
+ *   docs/assets/example-gallery.gif      1×4 横長(README・Slack 向け)
+ *   docs/assets/example-gallery-2x2.gif  2×2 正方形(X などアスペクト比 3:1 制限のある SNS 向け)
  */
 import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
@@ -35,7 +37,11 @@ const page = await browser.newPage()
 page.on('pageerror', (e) => console.error('pageerror:', e))
 await page.goto(base + '/index.html')
 
-const gifB64 = await page.evaluate(async () => {
+for (const LAYOUT of [
+  { file: 'example-gallery.gif', cols: 4, rows: 1, tile: 244 },
+  { file: 'example-gallery-2x2.gif', cols: 2, rows: 2, tile: 300 },
+]) {
+const gifB64 = await page.evaluate(async ({ cols, rows, tile }) => {
   const { GIFEncoder, quantize, applyPalette } = await import(
     '/node_modules/gifenc/dist/gifenc.esm.js'
   )
@@ -82,10 +88,10 @@ const gifB64 = await page.evaluate(async () => {
     [1, 2, 3, 4].map((i) => parseTile(`/docs/assets/example-${i}.svg`)),
   )
 
-  const TILE = 244
+  const TILE = tile
   const GAP = 8
-  const W = TILE * 4 + GAP * 3
-  const H = TILE
+  const W = TILE * cols + GAP * (cols - 1)
+  const H = TILE * rows + GAP * (rows - 1)
   const FRAMES = 48
   const DUR_MS = 16000
   const c = document.createElement('canvas')
@@ -98,16 +104,18 @@ const gifB64 = await page.evaluate(async () => {
     const p = f / (FRAMES - 1) // SMIL の keyTimes と同じ 0..1
     g.fillStyle = '#0d1117' // GitHub ダークの下地
     g.fillRect(0, 0, W, H)
-    tiles.forEach((tile, idx) => {
-      const ox = idx * (TILE + GAP)
-      const sc = TILE / tile.size
+    tiles.forEach((tileData, idx) => {
+      const ox = (idx % cols) * (TILE + GAP)
+      const oy = Math.floor(idx / cols) * (TILE + GAP)
+      const sc = TILE / tileData.size
       g.save()
+      g.translate(0, oy)
       g.beginPath()
       g.rect(ox, 0, TILE, TILE)
       g.clip()
-      g.fillStyle = tile.bg
+      g.fillStyle = tileData.bg
       g.fillRect(ox, 0, TILE, TILE)
-      for (const it of tile.items) {
+      for (const it of tileData.items) {
         if (it.ti > p) continue
         g.globalAlpha = it.op
         g.fillStyle = it.fill
@@ -140,10 +148,11 @@ const gifB64 = await page.evaluate(async () => {
     bin += String.fromCharCode(...bytes.subarray(i, i + 32768))
   }
   return btoa(bin)
-})
+}, LAYOUT)
 
-writeFileSync(ROOT + 'docs/assets/example-gallery.gif', Buffer.from(gifB64, 'base64'))
-console.log('docs/assets/example-gallery.gif を書き出しました')
+writeFileSync(ROOT + 'docs/assets/' + LAYOUT.file, Buffer.from(gifB64, 'base64'))
+console.log('docs/assets/' + LAYOUT.file + ' を書き出しました')
+}
 
 await browser.close()
 server.kill()
