@@ -111,6 +111,14 @@ await waitDone(80)
 check('設定変更後は新規実行(巻き戻しが起きる)', (await minScrub()) === 0, `min=${await minScrub()}`)
 check('新規実行が新しい目標で完了', (await page.textContent('#statTotal')) === '80')
 
+// --- 4. 図形数の上限: 5000 超を指定しても 5000 に丸められない ---
+await page.click('#reset')
+await page.fill('#steps', '8000')
+await page.click('#run')
+await page.waitForFunction(() => Number(document.getElementById('statTotal').textContent) > 0)
+check('図形数 8000 が 5000 に丸められない', (await page.textContent('#statTotal')) === '8000')
+await page.click('#reset')
+
 await page.evaluate(() => clearInterval(window.__scrubIv))
 check('ページエラーなし', errors.length === 0)
 if (errors.length) for (const e of errors) console.log('  error:', e)
