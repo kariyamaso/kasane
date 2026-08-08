@@ -4,6 +4,8 @@
 
 <p align="center"><b>Layered Geometric Primitive-Based Image Approximation</b></p>
 
+<p align="center"><b>日本語</b> ｜ <a href="./README.en.md">English</a></p>
+
 <p align="center">
   <img src="docs/assets/hero.svg" width="100%" alt="240枚の半透明三角形が1枚ずつ重なって山と日輪の風景が立ち上がる(ループ)" />
 </p>
@@ -12,12 +14,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center">
-  <a href="https://kariyamaso.github.io/kasane/"><img src="docs/assets/btn-demo.svg" width="280" alt="▶ 静止画デモを開く" /></a>&nbsp;
-  <a href="https://kariyamaso.github.io/kasane/video.html"><img src="docs/assets/btn-video.svg" width="280" alt="▶ 動画デモを開く" /></a>
+  <a href="https://kariyamaso.github.io/kasane/?lang=ja"><img src="docs/assets/btn-demo.svg" width="280" alt="▶ 静止画デモを開く" /></a>&nbsp;
+  <a href="https://kariyamaso.github.io/kasane/video.html?lang=ja"><img src="docs/assets/btn-video.svg" width="280" alt="▶ 動画デモを開く" /></a>
 </p>
-<p align="center"><sub>ボタンも Kasane の出力(三角形560枚)。Demo:
-<a href="https://kariyamaso.github.io/kasane/">kariyamaso.github.io/kasane</a> ／
-<a href="https://kariyamaso.github.io/kasane/video.html">video.html</a></sub></p>
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,
@@ -176,7 +175,7 @@ warm start 型の逐次ソルバにしている(λ_v = 0, L_min = 1, k = 0 が�
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Layer 0 前処理         | 3フレーム時間バイラテラル(動きのある画素は混ぜない)+ フレーム間 RMSE によるカット検出。カットをまたいで輸送しない                                                                                                                     |
 | Layer 1 輸送           | 各図形の支持領域から最大28点をサンプルし、疎なピラミッド型 Lucas–Kanade → 2×3 アフィンを最小二乗フィット → 図形の自由度へ射影(円なら平行移動+半径、角度持ちは回転も)。密フロー不要で O(M×数十点)                                      |
-| Layer 2 再フィット     | z順の下から上への1掃引で合成しつつ、支持領域残差の大きい上位(既定40%)だけ warm start の山登り。スコアには λ*v·n·‖θ−θ̂‖²*Λ を直接足す(Λ は角度を弧長換算して px に揃える対角重み)。最適色は毎フレーム閉形式で解き直し、色の慣性で混ぜる |
+| Layer 2 再フィット     | z順の下から上への1掃引で合成しつつ、支持領域残差の大きい上位(既定40%)だけ warm start の山登り。スコアには λ\_v·n·‖θ−θ̂‖²\_Λ を直接足す(Λ は角度を弧長換算して px に揃える対角重み)。最適色は毎フレーム閉形式で解き直し、色の慣性で混ぜる |
 | Layer 3 生死           | 寄与(被覆1画素あたりのSSE改善)が τ_death 未満 × 2フレーム連続で退場、残差への貪欲追加は 1フレーム B 個まで。**τ_birth = 4·τ_death のヒステリシス**が閾値付近の明滅を防ぐ。生死は瞬時にせず k フレームかけて α をランプ(振り付け)      |
 | Layer 4 キーフレーム化 | 全フレーム処理後、各 θ_i(t) にパラメータ空間の Ramer–Douglas–Peucker(許容 ε、角度は unwrap + 弧長換算)を走らせ、毎フレーム値を疎なキーフレーム列へ圧縮                                                                                |
 
@@ -292,6 +291,7 @@ src/
     svg.ts             任意ステップの SVG 書き出し
     worker.ts          最適化ワーカー
   ui/
+    i18n.ts            日本語/英語の UI 辞書と切替
     render.ts          Canvas 2D への高解像度描画
   video/               動画版(video.html)
     types.ts           トラック・キーフレーム・設定・Worker メッセージの型
