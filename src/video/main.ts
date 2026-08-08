@@ -288,7 +288,7 @@ function clampNum(input: HTMLInputElement, lo: number, hi: number): number {
 function readConfig(): VideoConfig {
   return {
     ...DEFAULT_CONFIG,
-    steps: clampNum(el.steps, 8, 1000),
+    steps: clampNum(el.steps, 8, 1000000),
     alpha: Number(el.alpha.value),
     optimizeAlpha: false,
     resolution: Number(el.resolution.value),

@@ -49,7 +49,8 @@ rendered semi-transparently on top of each other.
 All four are Kasane's own output, replaying their construction in a loop. Left to right:
 Monet's <i>Water Lilies</i> (mixed shapes, 4000) ／
 Van Gogh's <i>The Starry Night</i> (4-color fixed palette, α101, 12000) ／
-an apple (circle/ellipse-heavy, 3500) ／ lakeside lupins (with Bézier strokes, 4500)
+an apple (circle/ellipse-heavy, 3500) ／ lakeside lupins (with Bézier strokes, 4500).
+Both paintings are in the public domain (<i>Water Lilies</i> 1906, <i>The Starry Night</i> 1889)
 </sub></p>
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />
@@ -77,10 +78,11 @@ Each step commits one shape.
 ## Video mode
 
 <p align="center">
-  <img src="docs/assets/video-demo.svg" width="100%" alt="An animated SVG reconstructing a synthetic scene of a sun arcing across the sky from shape trajectories" />
+  <img src="docs/assets/video-demo.svg" width="100%" alt="Eadweard Muybridge's The Horse in Motion reconstructed from shape trajectories" />
 </p>
 <p align="center"><sub>
-Real output of the video pipeline (36 frames, 90 shapes). Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
+Real output of the video pipeline: Eadweard Muybridge's <i>The Horse in Motion</i> (1878, public domain),
+15 frames, 140 shapes. Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
 </sub></p>
 
 | Layer                | Processing                                                                                                                                                                                                                                                                             |

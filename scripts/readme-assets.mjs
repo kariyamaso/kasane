@@ -543,7 +543,7 @@ const palettes = await page.evaluate(async () => {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. 動画デモ: 動くシーン → 動画パイプライン → アニメSVG出力そのもの     */
+/* 3. 動画デモ: マイブリッジ《動く馬》 → 動画パイプライン → アニメSVG      */
 /* ------------------------------------------------------------------ */
 
 const videoSvg = await page.evaluate(async () => {
@@ -553,60 +553,37 @@ const videoSvg = await page.evaluate(async () => {
   const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
   const { DEFAULT_VIDEO_EXTRA } = await import('/src/video/types.ts')
 
-  const w = 360
-  const h = 108
-  const F = 36
+  // マイブリッジ《動く馬》(1878、パブリックドメイン)。ギャロップ1周期の
+  // 連続写真なので、アニメSVGのループがそのまま歩様のループになる
+  const buf = await (await fetch('/docs/assets/example-horse.gif')).arrayBuffer()
+  const dec = new ImageDecoder({ data: buf, type: 'image/gif' })
+  await dec.tracks.ready
+  const F = dec.tracks.selectedTrack.frameCount
+  const w = 300
+  const h = 200
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
   const g = c.getContext('2d', { willReadFrequently: true })
-
-  const makeFrame = (t) => {
-    const u = t / (F - 1)
-    const sky = g.createLinearGradient(0, 0, 0, h)
-    sky.addColorStop(0, '#141a33')
-    sky.addColorStop(0.55, '#31538c')
-    sky.addColorStop(0.85, '#c65f4a')
-    g.fillStyle = sky
-    g.fillRect(0, 0, w, h)
-    // 日輪が弧を描いて渡る
-    const sx = 40 + u * (w - 80)
-    const sy = 66 - Math.sin(u * Math.PI) * 38
-    g.fillStyle = '#f2b705'
-    g.beginPath()
-    g.arc(sx, sy, 15, 0, Math.PI * 2)
-    g.fill()
-    const ridge = (baseY, amp, freq, phase, color) => {
-      g.fillStyle = color
-      g.beginPath()
-      g.moveTo(0, h)
-      for (let x = 0; x <= w; x += 4) {
-        const y = baseY - amp * Math.abs(Math.sin((x / w) * Math.PI * freq + phase))
-        g.lineTo(x, y)
-      }
-      g.lineTo(w, h)
-      g.closePath()
-      g.fill()
-    }
-    ridge(h * 0.92, 34, 2.6, 0.8, '#1a2340')
-    ridge(h * 1.0, 22, 3.8, 3.4, '#0d1020')
-    return g.getImageData(0, 0, w, h).data
-  }
-
   const frames = []
-  for (let t = 0; t < F; t++) frames.push(makeFrame(t))
+  for (let i = 0; i < F; i++) {
+    const { image } = await dec.decode({ frameIndex: i })
+    g.drawImage(image, 0, 0, w, h)
+    image.close()
+    frames.push(g.getImageData(0, 0, w, h).data)
+  }
 
   const cfg = {
     ...DEFAULT_CONFIG,
     ...DEFAULT_VIDEO_EXTRA,
-    steps: 90,
-    alpha: 160,
-    shapes: ['triangle', 'circle'],
-    sizeMin: 0.02,
+    steps: 140,
+    alpha: 170,
+    shapes: ['triangle', 'ellipse', 'bezier'],
+    sizeMin: 0.015,
     sizeMax: 0.3,
     randomTries: 48,
     hillClimbAge: 20,
-    seed: 3,
+    seed: 4,
   }
   const model = new VideoModel(w, h, frames[0], cfg)
   let churn = 0
@@ -617,13 +594,16 @@ const videoSvg = await page.evaluate(async () => {
   const tracks = keyframeTracks(model.finish(F), cfg.rdpEpsilon)
   return {
     svg: tracksToAnimatedSvg(tracks, F, 12, model.bg, w, h, 1200),
+    frames: F,
     tracks: tracks.length,
     churn: churn / (F - 1),
   }
 })
 
 writeFileSync(OUT + 'video-demo.svg', videoSvg.svg)
-console.log(`video-demo.svg    軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`)
+console.log(
+  `video-demo.svg    ${videoSvg.frames}フレーム 軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`,
+)
 
 /* ------------------------------------------------------------------ */
 /* 3a. セクション区切りバー: 襲の色目(重ねた色帯)を三角形で近似した帯     */
