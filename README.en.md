@@ -103,6 +103,10 @@ Unlike frame-independent processing, shapes <b>move as trajectories</b> instead 
 
 ## Usage
 
+**Web app (nothing to install)**: [image mode](https://kariyamaso.github.io/kasane/?lang=en) ／ [video mode](https://kariyamaso.github.io/kasane/video.html?lang=en)
+
+To develop or build locally:
+
 ```bash
 npm install
 npm run dev      # http://localhost:5173

@@ -99,6 +99,10 @@
 
 ## 使い方
 
+**Web アプリ(インストール不要)**: [静止画版](https://kariyamaso.github.io/kasane/?lang=ja) ／ [動画版](https://kariyamaso.github.io/kasane/video.html?lang=ja)
+
+以下はローカルで開発・ビルドする場合:
+
 ```bash
 npm install
 npm run dev      # http://localhost:5173
