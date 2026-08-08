@@ -11,7 +11,13 @@
 [![CI](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml/badge.svg)](https://github.com/kariyamaso/kasane/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Demo:** [kariyamaso.github.io/kasane](https://kariyamaso.github.io/kasane/)（動画版: [/video.html](https://kariyamaso.github.io/kasane/video.html)）
+<p align="center">
+  <a href="https://kariyamaso.github.io/kasane/"><img src="docs/assets/btn-demo.svg" width="280" alt="▶ 静止画デモを開く" /></a>&nbsp;
+  <a href="https://kariyamaso.github.io/kasane/video.html"><img src="docs/assets/btn-video.svg" width="280" alt="▶ 動画デモを開く" /></a>
+</p>
+<p align="center"><sub>ボタンも Kasane の出力(三角形560枚)。Demo:
+<a href="https://kariyamaso.github.io/kasane/">kariyamaso.github.io/kasane</a> ／
+<a href="https://kariyamaso.github.io/kasane/video.html">video.html</a></sub></p>
 
 > A web app that progressively reconstructs a target image by layering
 > semi-transparent geometric primitives (triangles, quads, circles, polygons,

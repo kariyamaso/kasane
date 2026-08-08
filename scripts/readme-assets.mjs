@@ -65,12 +65,13 @@ function constructionSvg(data, outW, dur, build = 0.72) {
     for (let k = 0; k < it.pts.length; k += 2) d += `${f(it.pts[k] * sc)},${f(it.pts[k + 1] * sc)} `
     const ti = 0.015 + build * (i / (N - 1))
     const t0 = Math.max(0.001, ti - 0.006)
-    parts.push(
-      `<polygon points="${d.trim()}" fill="${it.fill}" fill-opacity="${f4(it.op)}">` +
-        `<animate attributeName="fill-opacity" dur="${dur}s" repeatCount="indefinite" ` +
-        `calcMode="linear" keyTimes="0;${f4(t0)};${f4(ti)};1" values="0;0;${f4(it.op)};${f4(it.op)}"/>` +
-        `</polygon>`,
-    )
+    // dur = 0 は静止画(完成形のみ)
+    const anim =
+      dur > 0
+        ? `<animate attributeName="fill-opacity" dur="${dur}s" repeatCount="indefinite" ` +
+          `calcMode="linear" keyTimes="0;${f4(t0)};${f4(ti)};1" values="0;0;${f4(it.op)};${f4(it.op)}"/>`
+        : ''
+    parts.push(`<polygon points="${d.trim()}" fill="${it.fill}" fill-opacity="${f4(it.op)}">${anim}</polygon>`)
   })
   parts.push('</svg>')
   return parts.join('\n')
@@ -233,6 +234,86 @@ const title = await page.evaluate(async () => {
 
 writeFileSync(OUT + 'title.svg', constructionSvg(title, 1200, 12, 0.76))
 console.log(`title.svg         ${title.items.length}図形 rmse=${title.rmse.toFixed(4)}`)
+
+/* ------------------------------------------------------------------ */
+/* 1c. デモボタン: ボタン画像もプリミティブ近似で作り、<a> で包んで使う   */
+/* ------------------------------------------------------------------ */
+
+// 静止画デモのボタンは静止SVG、動画デモのボタンだけ構成アニメ(dur>0)にする
+const BUTTONS = [
+  { file: 'btn-demo.svg', label: '▶ 静止画デモ', color: '#f2b705', seed: 21, dur: 0 },
+  { file: 'btn-video.svg', label: '▶ 動画デモ', color: '#7fb3ff', seed: 22, dur: 8 },
+]
+
+for (const spec of BUTTONS) {
+  const btn = await page.evaluate(async ({ label, color, seed }) => {
+    const { Model } = await import('/src/core/model.ts')
+    const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+    const { outlinePoints } = await import('/src/core/shapes.ts')
+    const { rgbToHex } = await import('/src/core/color.ts')
+
+    const c = document.createElement('canvas')
+    c.width = 840
+    c.height = 180
+    const g = c.getContext('2d')
+    g.fillStyle = '#0e1013'
+    g.fillRect(0, 0, 840, 180)
+    // パネル風の角丸ボタン + アクセント色の枠と文字
+    g.fillStyle = '#1d2127'
+    g.beginPath()
+    g.roundRect(14, 14, 812, 152, 26)
+    g.fill()
+    g.strokeStyle = color
+    g.lineWidth = 7
+    g.stroke()
+    g.fillStyle = color
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.font = '800 76px "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif'
+    g.fillText(label, 420, 94)
+
+    const w = 700
+    const h = 150
+    const s = document.createElement('canvas')
+    s.width = w
+    s.height = h
+    const sg = s.getContext('2d', { willReadFrequently: true })
+    sg.drawImage(c, 0, 0, w, h)
+    const pixels = sg.getImageData(0, 0, w, h).data
+
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      steps: 560,
+      alpha: 210,
+      shapes: ['triangle'],
+      sizeMin: 0.0035,
+      sizeMax: 0.045,
+      randomTries: 72,
+      hillClimbAge: 28,
+      seed,
+      bg: 'custom',
+      bgColor: '#0e1013',
+    }
+    const model = new Model(w, h, pixels, cfg)
+    while (model.records.length < cfg.steps) {
+      if (!model.step()) break
+    }
+    return {
+      w,
+      h,
+      bg: rgbToHex(model.bg),
+      rmse: model.score,
+      items: model.records.map((r) => ({
+        fill: rgbToHex(r.color),
+        op: r.alpha / 255,
+        pts: outlinePoints(r.shape),
+      })),
+    }
+  }, spec)
+  // 動画デモ側だけ素早く組み上がるアニメ、静止画デモ側は完成形の静止SVG
+  writeFileSync(OUT + spec.file, constructionSvg(btn, 840, spec.dur, 0.22))
+  console.log(`${spec.file}      ${btn.items.length}図形 rmse=${btn.rmse.toFixed(4)}`)
+}
 
 /* ------------------------------------------------------------------ */
 /* 2. 配色統制ストリップ: 同一入力・同一探索・配色制約だけ差し替え        */
