@@ -90,26 +90,6 @@ Each step commits one shape.
 Real output of the video pipeline (36 frames, 90 shapes). Unlike frame-independent processing, shapes <b>move as trajectories</b> instead of flickering.
 </sub></p>
 
-`video.html` extends the image pipeline through time. The output
-representation is not "a set of shapes per frame" but **a set of shapes with
-lifetimes and trajectories**, with z-order (the index) held fixed.
-
-```
-𝒫 = { (θ_i(·), c_i(·), α_i, b_i, d_i) }_{i=1..M}     [b_i, d_i) = lifetime
-R_t(𝒫) = Composite_{i: b_i ≤ t < d_i} (θ_i(t), c_i(t), α_i)
-
-L(𝒫) = Σ_t ‖I_t − R_t‖²                    … fidelity
-     + λ_v Σ_i Σ_t ‖θ_i(t+1) − θ_i(t)‖²_Λ  … trajectory smoothness
-     + λ_M M                                … parsimony
-     s.t. d_i − b_i ≥ L_min
-```
-
-Running the greedy solver independently per frame flickers. The cause is that
-greedy addition is a discrete argmax choice and therefore **discontinuous in
-its input**, so the solver here is a warm-start sequential one that constrains
-each solution to the neighborhood of the previous frame's solution
-(λ_v = 0, L_min = 1, k = 0 reduces to frame-independent processing).
-
 | Layer                | Processing                                                                                                                                                                                                                                                                             |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Layer 0 preprocess   | 3-frame temporal bilateral (moving pixels are not mixed) + shot-cut detection by inter-frame RMSE. Never advect across a cut                                                                                                                                                             |
