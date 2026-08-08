@@ -42,61 +42,6 @@ rough forms appear; as N grows, detail is recovered
 P_i       = (shape, position, size, rotation, color, α)
 ```
 
-## How it differs from existing implementations
-
-Comparison with implementations in the same lineage. **To avoid overclaiming,
-features of the other tools are listed only as far as they could be verified
-from official READMEs, UI definitions, and API docs** ("none" means "not found
-as a documented feature").
-
-|                    | [fogleman/primitive](https://github.com/fogleman/primitive) | [Geometrize](https://github.com/Tw1ddle/geometrize)                        | [primitive.js](https://github.com/ondras/primitive.js)      | **Kasane**                                                                             |
-| ------------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Form               | CLI (Go)                                                      | Desktop GUI (Qt) + Haxe library                                              | Browser                                                       | Browser                                                                                  |
-| Shapes             | 8 kinds + combo                                               | 9 kinds                                                                      | 4 kinds                                                       | 10 kinds                                                                                 |
-| Color              | Optimal color (automatic)                                     | Optimal color (automatic)                                                    | Optimal color (automatic; only background color configurable) | Optimal color **+ projection onto gradient / fixed palette / monochrome ramp, source blend** |
-| Shape size bounds  | None                                                          | Not in the GUI (possible by editing ChaiScript shape mutators)               | None                                                          | **GUI sliders for min/max circumradius**                                                 |
-| Intermediate state | Numbered output via `-nth` / animated GIF                     | Step execution, numbered PNGs, animated GIF                                  | Sequential display only                                       | **All steps retained; scrub and replay in both directions**                              |
-| Placement bounds   | None                                                          | Yes (Shape Bounding Area)                                                    | None                                                          | None                                                                                     |
-| Extensibility      | Modify source                                                 | **Many ChaiScript hooks** (energy function, mutation, callbacks)             | Modify source                                                 | Modify source                                                                            |
-| Parallelism        | Yes (`-j`)                                                    | Yes (`maxThreads`)                                                           | None                                                          | None (single Worker)                                                                     |
-| Output             | PNG/JPG/SVG/GIF                                               | PNG/numbered PNG/SVG/GIF/JSON/HTML5 canvas/WebGL                             | PNG/SVG                                                       | PNG/SVG/JSON                                                                             |
-
-**The essential functional difference is a single point: color governance.**
-By inserting a layer that projects the closed-form optimal color onto a
-user-specified color space, you can swap the artistic style while preserving
-fidelity.
-
-<p align="center">
-  <img src="docs/assets/palettes.svg" width="100%" alt="Four approximations of the same input with only the color constraint changed" />
-</p>
-<p align="center"><sub>
-Same input, same seed (= identical search process), only the color constraint changed. The geometry is shared; only the colors differ.
-</sub></p>
-
-None of the four implementations above documents palette/gradient constraints
-(Geometrize has a `customEnergyFunction` script hook, so something similar
-could be built with scripting).
-
-Size bounds and intermediate-state scrubbing are differences of **direct GUI
-access** rather than raw capability (Geometrize needs script edits; primitive
-needs flags and external tools). For extensibility and parallelism, Geometrize
-is clearly ahead.
-
-## Names for this technique
-
-| Context                                     | Name                                                                                          |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Generic                                     | Geometric Primitive-Based Image Approximation / Primitive-Based Image Reconstruction            |
-| The property that partial results look right | Progressive Image Approximation / Coarse-to-Fine Image Reconstruction                           |
-| Evolutionary-computation lineage            | Evolutionary Image Approximation / Evolutionary Art / Genetic Algorithm Image Reconstruction    |
-| Restricted to polygons                      | Polygon-Based Image Approximation                                                               |
-| Representative implementations              | [fogleman/primitive](https://github.com/fogleman/primitive) (Go), Roger Alsing's "EvoLisa" (GA) |
-
-This implementation follows the fogleman/primitive family:
-**stochastic hill climbing + simulated annealing**
-(1–2 orders of magnitude faster than GA, reaching lower error at the same
-shape count).
-
 ## Algorithm
 
 Each step commits one shape.
@@ -328,12 +273,12 @@ Every image in this README is Kasane's own output and can be regenerated with
 CHROME_PATH=/path/to/chrome node scripts/readme-assets.mjs
 ```
 
-## Extension points
+## Related projects
 
-- **Add a new shape**: add to `ShapeKind` in `types.ts` → add branches in `randomShape` / `mutateShape` / `shapeScanlines` / `outlinePoints` in `shapes.ts` → add rendering in `svg.ts` and `ui/render.ts`. That alone plugs it into optimization, UI, and export
-- **Different error metric**: swap `partialSSE` in `score.ts` (SSIM-like weighting, gradient terms, …)
-- **Compare against GA**: swap `search()` in `model.ts` to implement an evolutionary version on the same evaluation machinery
-- **Analyze shape sequences**: the JSON export contains every shape's parameters, color, α, and the RMSE at that step — ready for "error decay vs N" or "contribution by shape kind" analyses
+- [fogleman/primitive](https://github.com/fogleman/primitive) — Go CLI; the representative implementation of this lineage
+- [Geometrize](https://github.com/Tw1ddle/geometrize) — desktop GUI (Qt) + Haxe library
+- [primitive.js](https://github.com/ondras/primitive.js) — browser implementation
+- Roger Alsing's "EvoLisa" — pioneering genetic-algorithm variant
 
 ## License
 

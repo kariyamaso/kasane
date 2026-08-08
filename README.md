@@ -43,53 +43,6 @@ which is, quite literally, what this program does._
 P_i       = (形状, 位置, 大きさ, 回転, 色, α)
 ```
 
-## 既存実装との差分
-
-同じ系譜の実装との比較。**過大に主張しないために、相手側の機能は公式 README・UI 定義・API
-ドキュメントで確認できた範囲のみを記載している**（「なし」は「文書化された機能として確認できなかった」の意）。
-
-|                  | [fogleman/primitive](https://github.com/fogleman/primitive) | [Geometrize](https://github.com/Tw1ddle/geometrize)               | [primitive.js](https://github.com/ondras/primitive.js) | **Kasane**                                                                      |
-| ---------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| 形態             | CLI (Go)                                                    | デスクトップ GUI (Qt) + Haxe ライブラリ                           | ブラウザ                                               | ブラウザ                                                                        |
-| 図形             | 8種 + combo                                                 | 9種                                                               | 4種                                                    | 10種                                                                            |
-| 色               | 最適色（自動）                                              | 最適色（自動）                                                    | 最適色（自動、背景のみ固定色指定可）                   | 最適色 **+ グラデーション / 固定パレット / モノクロ階調への射影、元色ブレンド** |
-| 図形サイズの制約 | なし                                                        | GUI にはなし（ChaiScript のシェイプミューテータを編集すれば可能） | なし                                                   | **GUI スライダーで外接円半径の下限・上限**                                      |
-| 中間状態         | `-nth` で連番出力 / アニメ GIF                              | ステップ実行・連番 PNG・アニメ GIF                                | 逐次表示のみ                                           | **全ステップを保持し、双方向にスクラブ・再生**                                  |
-| 配置範囲の制約   | なし                                                        | あり（Shape Bounding Area）                                       | なし                                                   | なし                                                                            |
-| 拡張             | ソース改変                                                  | **ChaiScript フック多数**（誤差関数・変異・各種コールバック）     | ソース改変                                             | ソース改変                                                                      |
-| 並列化           | あり (`-j`)                                                 | あり (`maxThreads`)                                               | なし                                                   | なし（Worker 1本）                                                              |
-| 出力             | PNG/JPG/SVG/GIF                                             | PNG/連番PNG/SVG/GIF/JSON/HTML5 canvas/WebGL                       | PNG/SVG                                                | PNG/SVG/JSON                                                                    |
-
-**本質的な機能差は「配色の統制」の一点**。閉形式で求めた最適色を、ユーザー指定の色空間へ射影する
-層を挟むことで、忠実度を保ったまま作風だけを差し替えられる。
-
-<p align="center">
-  <img src="docs/assets/palettes.svg" width="100%" alt="同一入力・同一シードで配色制約だけを差し替えた4つの近似結果" />
-</p>
-<p align="center"><sub>
-同一入力・同一シード(=同一の探索過程)で配色制約だけを差し替えた例。幾何は共通で、色だけが変わる
-</sub></p>
-
-上記 4 実装のいずれにも
-パレット・グラデーション制約は文書化されていない（Geometrize は `customEnergyFunction`
-スクリプトフックがあるため、書けば近いことは実現できる）。
-
-サイズ範囲と中間状態のスクラブは、機能の有無ではなく **GUI で直に触れることの差**（Geometrize は
-スクリプト編集、primitive はフラグと外部ツール）。拡張性と並列化では Geometrize が明確に上。
-
-## この手法の呼び名
-
-| 文脈                             | 名称                                                                                           |
-| -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 総称                             | Geometric Primitive-Based Image Approximation / Primitive-Based Image Reconstruction           |
-| 途中経過が概形として成立する性質 | Progressive Image Approximation / Coarse-to-Fine Image Reconstruction                          |
-| 進化計算で解く系譜               | Evolutionary Image Approximation / Evolutionary Art / Genetic Algorithm Image Reconstruction   |
-| 多角形に限定した場合             | Polygon-Based Image Approximation                                                              |
-| 代表的実装                       | [fogleman/primitive](https://github.com/fogleman/primitive)(Go)、Roger Alsing の "EvoLisa"(GA) |
-
-本実装は fogleman/primitive 系の **確率的山登り法 + 焼きなまし** を採用している
-(GA より 1〜2 桁速く、同じ図形数でより低い誤差に到達するため)。
-
 ## アルゴリズム
 
 各ステップで 1 図形を確定させる。
@@ -317,13 +270,12 @@ README の画像はすべて Kasane 自身の出力で、次で再生成でき�
 CHROME_PATH=/path/to/chrome node scripts/readme-assets.mjs
 ```
 
-## 拡張の入口
+## 類似プロジェクト
 
-- **新しい図形を足す**: `types.ts` の `ShapeKind` に追加 → `shapes.ts` の `randomShape` / `mutateShape` / `shapeScanlines` / `outlinePoints` に分岐を足す → `svg.ts` と `ui/render.ts` に描画を足す。それだけで最適化・UI・書き出しすべてに乗る
-- **別の誤差指標**: `score.ts` の `partialSSE` を差し替える(SSIM 的な重み付け、勾配項の追加など)
-- **GA との比較実験**: `model.ts` の `search()` を差し替えれば、同じ評価系のまま進化計算版を実装できる
-- **図形列の解析**: JSON 書き出しに全図形のパラメータ・色・α・そのステップ時点の RMSE が入っているので、
-  「N に対する誤差の減衰曲線」「図形種別ごとの寄与」などをそのまま解析できる
+- [fogleman/primitive](https://github.com/fogleman/primitive) — Go 製 CLI。この系譜の代表実装
+- [Geometrize](https://github.com/Tw1ddle/geometrize) — デスクトップ GUI (Qt) + Haxe ライブラリ
+- [primitive.js](https://github.com/ondras/primitive.js) — ブラウザ実装
+- Roger Alsing の "EvoLisa" — 遺伝的アルゴリズムによる先駆的実装
 
 ## License
 
