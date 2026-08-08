@@ -172,6 +172,17 @@ docs/assets/           Output of the script above (referenced from the README)
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />
 
+## Creator
+
+<p align="center">
+  <a href="https://x.com/so_kariyama"><img src="https://img.shields.io/badge/X_(Twitter)-%40so__kariyama-0e1013?style=for-the-badge&logo=x&logoColor=white" alt="X: @so_kariyama" /></a>
+</p>
+<p align="center">
+  <a href="https://x.com/so_kariyama"><img src="docs/assets/qr.png" width="150" alt="QR code for @so_kariyama on X" /></a>
+</p>
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## License
 
 [MIT](LICENSE)

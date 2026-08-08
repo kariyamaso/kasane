@@ -524,7 +524,7 @@ const divider = await page.evaluate(async () => {
 
   const c = document.createElement('canvas')
   c.width = 1200
-  c.height = 36
+  c.height = 24
   const g = c.getContext('2d')
   const grad = g.createLinearGradient(0, 0, 1200, 0)
   grad.addColorStop(0, '#f2b705')
@@ -533,10 +533,10 @@ const divider = await page.evaluate(async () => {
   grad.addColorStop(0.8, '#4d8df6')
   grad.addColorStop(1, '#2a9d8f')
   g.fillStyle = grad
-  g.fillRect(0, 0, 1200, 36)
+  g.fillRect(0, 0, 1200, 24)
 
-  const w = 600
-  const h = 18
+  const w = 480
+  const h = 10
   const s = document.createElement('canvas')
   s.width = w
   s.height = h
@@ -544,15 +544,16 @@ const divider = await page.evaluate(async () => {
   sg.drawImage(c, 0, 0, w, h)
   const pixels = sg.getImageData(0, 0, w, h).data
 
+  // 細い帯に大きめの三角形を少なめに置き、切り絵のテクスチャを見せる
   const cfg = {
     ...DEFAULT_CONFIG,
-    steps: 170,
-    alpha: 185,
+    steps: 70,
+    alpha: 150,
     shapes: ['triangle'],
-    sizeMin: 0.004,
-    sizeMax: 0.028,
-    randomTries: 56,
-    hillClimbAge: 20,
+    sizeMin: 0.012,
+    sizeMax: 0.05,
+    randomTries: 48,
+    hillClimbAge: 18,
     seed: 13,
     bg: 'custom',
     bgColor: '#0e1013',
