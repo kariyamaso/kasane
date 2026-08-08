@@ -513,6 +513,70 @@ writeFileSync(OUT + 'video-demo.svg', videoSvg.svg)
 console.log(`video-demo.svg    軌跡${videoSvg.tracks}本 churn=${videoSvg.churn.toFixed(2)}/frame`)
 
 /* ------------------------------------------------------------------ */
+/* 3a. セクション区切りバー: 襲の色目(重ねた色帯)を三角形で近似した帯     */
+/* ------------------------------------------------------------------ */
+
+const divider = await page.evaluate(async () => {
+  const { Model } = await import('/src/core/model.ts')
+  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+  const { outlinePoints } = await import('/src/core/shapes.ts')
+  const { rgbToHex } = await import('/src/core/color.ts')
+
+  const c = document.createElement('canvas')
+  c.width = 1200
+  c.height = 36
+  const g = c.getContext('2d')
+  const grad = g.createLinearGradient(0, 0, 1200, 0)
+  grad.addColorStop(0, '#f2b705')
+  grad.addColorStop(0.3, '#e2703a')
+  grad.addColorStop(0.55, '#c2455f')
+  grad.addColorStop(0.8, '#4d8df6')
+  grad.addColorStop(1, '#2a9d8f')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 1200, 36)
+
+  const w = 600
+  const h = 18
+  const s = document.createElement('canvas')
+  s.width = w
+  s.height = h
+  const sg = s.getContext('2d', { willReadFrequently: true })
+  sg.drawImage(c, 0, 0, w, h)
+  const pixels = sg.getImageData(0, 0, w, h).data
+
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    steps: 170,
+    alpha: 185,
+    shapes: ['triangle'],
+    sizeMin: 0.004,
+    sizeMax: 0.028,
+    randomTries: 56,
+    hillClimbAge: 20,
+    seed: 13,
+    bg: 'custom',
+    bgColor: '#0e1013',
+  }
+  const model = new Model(w, h, pixels, cfg)
+  while (model.records.length < cfg.steps) {
+    if (!model.step()) break
+  }
+  return {
+    w,
+    h,
+    bg: rgbToHex(model.bg),
+    rmse: model.score,
+    items: model.records.map((r) => ({
+      fill: rgbToHex(r.color),
+      op: r.alpha / 255,
+      pts: outlinePoints(r.shape),
+    })),
+  }
+})
+writeFileSync(OUT + 'divider.svg', constructionSvg(divider, 1200, 0))
+console.log(`divider.svg       ${divider.items.length}図形 rmse=${divider.rmse.toFixed(4)}`)
+
+/* ------------------------------------------------------------------ */
 /* 3b. OGP カード: リンクプレビュー用 1200×630 JPEG(og:image は SVG 不可) */
 /* ------------------------------------------------------------------ */
 

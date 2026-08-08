@@ -32,6 +32,8 @@
 基準画像を、三角形・四角形・円・正多角形・線分・ベジェ曲線などの単純図形を
 半透明で重ねることによって段階的に構成する Web アプリケーションです。
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## アルゴリズム
 
 各ステップで 1 図形を確定させる。
@@ -50,6 +52,8 @@
 4. **局所探索** — 最良候補を初期解として、焼きなまし(任意)→ 山登り法で幾何パラメータを改善
 5. **確定・合成** — 誤差が最も減る図形を current バッファへ α 合成
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## 動画版
 
 <p align="center">
@@ -66,6 +70,8 @@
 | Layer 2 再フィット     | z順の下から上への1掃引で合成しつつ、支持領域残差の大きい上位(既定40%)だけ warm start の山登り。スコアには λ\_v·n·‖θ−θ̂‖²\_Λ を直接足す(Λ は角度を弧長換算して px に揃える対角重み)。最適色は毎フレーム閉形式で解き直し、色の慣性で混ぜる |
 | Layer 3 生死           | 寄与(被覆1画素あたりのSSE改善)が τ_death 未満 × 2フレーム連続で退場、残差への貪欲追加は 1フレーム B 個まで。**τ_birth = 4·τ_death のヒステリシス**が閾値付近の明滅を防ぐ。生死は瞬時にせず k フレームかけて α をランプ(振り付け)      |
 | Layer 4 キーフレーム化 | 全フレーム処理後、各 θ_i(t) にパラメータ空間の Ramer–Douglas–Peucker(許容 ε、角度は unwrap + 弧長換算)を走らせ、毎フレーム値を疎なキーフレーム列へ圧縮                                                                                |
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## 使い方
 
@@ -86,6 +92,8 @@ CHROME_PATH=/path/to/chrome node test/size.mjs
 CHROME_PATH=/path/to/chrome node test/video.mjs   # 動画版(合成webmを生成して完走・churn・アニメSVGを検証)
 CHROME_PATH=/path/to/chrome node test/rerun.mjs   # 図形数変更→再実行(続きから追加/新規実行の分岐)を検証
 ```
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## パラメータの勘所
 
@@ -108,6 +116,8 @@ CHROME_PATH=/path/to/chrome node test/rerun.mjs   # 図形数変更→再実行(
 | 円+正多角形+回転楕円 | グラデーション | 0.0839 | 91.6%  | 0.3s |
 | 矩形(回転)+四角形    | 固定パレット   | 0.0942 | 90.6%  | 0.3s |
 | 線分+ベジェ          | モノクロ       | 0.1888 | 81.1%  | 0.2s |
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## 構成
 
@@ -147,12 +157,16 @@ scripts/
 docs/assets/           上記スクリプトの出力(README から参照される)
 ```
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## 類似プロジェクト
 
 - [fogleman/primitive](https://github.com/fogleman/primitive) — Go 製 CLI。この系譜の代表実装
 - [Geometrize](https://github.com/Tw1ddle/geometrize) — デスクトップ GUI (Qt) + Haxe ライブラリ
 - [primitive.js](https://github.com/ondras/primitive.js) — ブラウザ実装
 - Roger Alsing の "EvoLisa" — 遺伝的アルゴリズムによる先駆的実装
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## License
 

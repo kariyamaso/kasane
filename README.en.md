@@ -35,6 +35,8 @@ The app reconstructs a target image step by step from simple shapes —
 triangles, quads, circles, regular polygons, line segments, Bézier strokes —
 rendered semi-transparently on top of each other.
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## Algorithm
 
 Each step commits one shape.
@@ -53,6 +55,8 @@ Each step commits one shape.
 4. **Local search** — from the best candidate, refine geometry with (optional) simulated annealing → hill climbing
 5. **Commit & composite** — α-blend the shape with the lowest error into the current buffer
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## Video mode
 
 <p align="center">
@@ -69,6 +73,8 @@ Real output of the video pipeline (36 frames, 90 shapes). Unlike frame-independe
 | Layer 2 refit        | Composite in one bottom-to-top z-sweep; only the top fraction (default 40%) by support residual gets warm-start hill climbing. The smoothness term λ\_v·n·‖θ−θ̂‖²\_Λ is added directly to the score (Λ converts angles to arc length in px). Optimal colors are re-solved in closed form every frame and mixed with color inertia |
 | Layer 3 birth/death  | A shape whose contribution (SSE improvement per covered pixel) stays below τ_death for 2 consecutive frames retires; greedy additions against the residual are capped at B per frame. The **hysteresis τ_birth = 4·τ_death** prevents flicker near the threshold. Birth and death ramp α over k frames (choreography) |
 | Layer 4 keyframing   | After all frames, run parameter-space Ramer–Douglas–Peucker on each θ_i(t) (tolerance ε; angles unwrapped and arc-length weighted), compressing per-frame values into sparse keyframes                                                                                                    |
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## Usage
 
@@ -89,6 +95,8 @@ CHROME_PATH=/path/to/chrome node test/size.mjs
 CHROME_PATH=/path/to/chrome node test/video.mjs   # video mode (generates a synthetic webm; checks completion, churn, animated SVG)
 CHROME_PATH=/path/to/chrome node test/rerun.mjs   # verifies the rerun branching (extend vs fresh run)
 ```
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## Parameter intuitions
 
@@ -112,6 +120,8 @@ patience 16, 150 shapes):
 | Circles + polygons + rot. ellipses  | Gradient      | 0.0839 | 91.6% | 0.3s |
 | Rot. rects + quads                  | Fixed palette | 0.0942 | 90.6% | 0.3s |
 | Lines + Béziers                     | Monochrome    | 0.1888 | 81.1% | 0.2s |
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## Layout
 
@@ -151,12 +161,16 @@ scripts/
 docs/assets/           Output of the script above (referenced from the README)
 ```
 
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## Related projects
 
 - [fogleman/primitive](https://github.com/fogleman/primitive) — Go CLI; the representative implementation of this lineage
 - [Geometrize](https://github.com/Tw1ddle/geometrize) — desktop GUI (Qt) + Haxe library
 - [primitive.js](https://github.com/ondras/primitive.js) — browser implementation
 - Roger Alsing's "EvoLisa" — pioneering genetic-algorithm variant
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
 
 ## License
 
