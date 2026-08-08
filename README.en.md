@@ -53,34 +53,6 @@ Each step commits one shape.
 4. **Local search** — from the best candidate, refine geometry with (optional) simulated annealing → hill climbing
 5. **Commit & composite** — α-blend the shape with the lowest error into the current buffer
 
-### Performance notes
-
-- Shapes are converted to **scanlines (fill spans `[y, x1, x2]` per row)** so only covered pixels are visited
-- Error is carried as running SSE and **updated differentially** over covered pixels only
-  → evaluating a candidate does not depend on image size
-- One candidate is evaluated in **a single pass over covered pixels**: collecting the statistics Σe, Σe² of `e = target - current·(1-α)` yields both the optimal color `s* = Σe/(n·α)` and the post-composite SSE `Σe² - 2αs·Σe + nα²s²` for any color s in closed form, merging the two passes (the division also leaves the pixel loop)
-- Point-list generation (rotated-ellipse polygonalization, stroke outlines) reuses scratch buffers to avoid allocations in the evaluation loop
-- Evaluation runs on a downscaled image (default 256px); display and export re-render vectorially at full resolution
-- Optimization runs in a Web Worker so the UI never blocks. The worker is pre-created at page load and reused across runs, and the downscaled image is cached, so there is no perceptible lag between clicking Run and seeing the first shape
-- SSE drift from 8-bit rounding is reset by a full recomputation every 32 steps
-
-## Features
-
-- **Target image**: drag & drop / file picker / built-in sample
-- **Shapes**: triangle, free quad, rectangle (axis-aligned/rotated), ellipse (axis-aligned/rotated), circle, regular polygon (selectable sides), line segment, quadratic Bézier. Kinds can be mixed
-- **Shape size**: min/max sliders as a fraction of the long side (circumradius)
-- **Color**
-  - `Auto from source` — use the optimal color as-is (most faithful)
-  - `Gradient` — project onto a ramp built from any number of stops; mapping is "nearest (respect hue)" or "luma"
-  - `Fixed palette` — use only the specified colors (poster / silkscreen look)
-  - `Monochrome / tonal ramp` — map by luma onto a two-color ramp
-  - `Source blend` — mix the constrained color with the source color at any ratio (0% = pure palette / 100% = source)
-- **Intermediate states**: scrub to any step on the timeline, replay the construction with the play button
-- **Continue from the end**: after completion (or while paused), raising only the shape count N and pressing Run continues from shape N+1 without recomputation; changing any other setting starts a fresh run
-- **Views**: side-by-side / result only / source / difference heatmap
-- **Export**: PNG (any resolution) / SVG (vector, infinitely scalable) / JSON (the shape sequence itself)
-- **Reproducibility**: fixed random seed — identical settings always give identical results
-
 ## Video mode
 
 <p align="center">
