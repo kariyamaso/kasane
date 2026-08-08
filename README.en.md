@@ -37,6 +37,18 @@ rendered semi-transparently on top of each other.
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />
 
+## Example
+
+<p align="center">
+  <img src="docs/assets/example.svg" width="100%" alt="Monet's Water Lilies being assembled from 5000 shapes" />
+</p>
+<p align="center"><sub>
+Claude Monet's <i>Water Lilies</i> (public domain) assembled from <b>5000 shapes</b> —
+a mix of triangles, ellipses, circles, Bézier strokes, and regular polygons (5/6/7 sides), replayed in a loop
+</sub></p>
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## Algorithm
 
 Each step commits one shape.

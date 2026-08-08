@@ -60,6 +60,7 @@ const el = {
   tempOut: $<HTMLOutputElement>('tempOut'),
   annealIters: $<HTMLInputElement>('annealIters'),
   seed: $<HTMLInputElement>('seed'),
+  seedShuffle: $<HTMLInputElement>('seedShuffle'),
   run: $<HTMLButtonElement>('run'),
   reset: $<HTMLButtonElement>('reset'),
   outW: $<HTMLInputElement>('outW'),
@@ -471,6 +472,9 @@ function prepareOutputCanvas() {
 
 function start() {
   if (!state.bitmap) return
+  // 「実行ごとに新しいシード」: 使ったシードは欄に書き戻すので後から再現できる。
+  // 続きから追加(拡張)は start() を通らないため影響しない。
+  if (el.seedShuffle.checked) el.seed.value = String(1 + Math.floor(Math.random() * 1e9))
   const cfg = readConfig()
   runCfgJson = cfgFingerprint(cfg)
   computePixels(cfg.resolution)

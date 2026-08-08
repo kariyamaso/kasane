@@ -143,6 +143,7 @@ const M = {
   temp: { ja: '温度', en: 'Temperature' },
   annealIters: { ja: '焼きなまし反復', en: 'Annealing iterations' },
   seed: { ja: '乱数シード', en: 'Random seed' },
+  seedShuffle: { ja: '実行ごとに新しいシード', en: 'New seed each run' },
 
   /* ---- 実行・書き出し ---- */
   run: { ja: '実行', en: 'Run' },

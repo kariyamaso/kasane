@@ -61,8 +61,6 @@ function constructionSvg(data, outW, dur, build = 0.72) {
     `<rect width="100%" height="100%" fill="${data.bg}"/>`,
   ]
   data.items.forEach((it, i) => {
-    let d = ''
-    for (let k = 0; k < it.pts.length; k += 2) d += `${f(it.pts[k] * sc)},${f(it.pts[k + 1] * sc)} `
     const ti = 0.015 + build * (i / (N - 1))
     const t0 = Math.max(0.001, ti - 0.006)
     // dur = 0 は静止画(完成形のみ)
@@ -71,7 +69,20 @@ function constructionSvg(data, outW, dur, build = 0.72) {
         ? `<animate attributeName="fill-opacity" dur="${dur}s" repeatCount="indefinite" ` +
           `calcMode="linear" keyTimes="0;${f4(t0)};${f4(ti)};1" values="0;0;${f4(it.op)};${f4(it.op)}"/>`
         : ''
-    parts.push(`<polygon points="${d.trim()}" fill="${it.fill}" fill-opacity="${f4(it.op)}">${anim}</polygon>`)
+    const paint = `fill="${it.fill}" fill-opacity="${f4(it.op)}"`
+    if (it.circle) {
+      const [cx, cy, r] = it.circle
+      parts.push(`<circle cx="${f(cx * sc)}" cy="${f(cy * sc)}" r="${f(r * sc)}" ${paint}>${anim}</circle>`)
+    } else if (it.ellipse) {
+      const [cx, cy, rx, ry] = it.ellipse
+      parts.push(
+        `<ellipse cx="${f(cx * sc)}" cy="${f(cy * sc)}" rx="${f(rx * sc)}" ry="${f(ry * sc)}" ${paint}>${anim}</ellipse>`,
+      )
+    } else {
+      let d = ''
+      for (let k = 0; k < it.pts.length; k += 2) d += `${f(it.pts[k] * sc)},${f(it.pts[k + 1] * sc)} `
+      parts.push(`<polygon points="${d.trim()}" ${paint}>${anim}</polygon>`)
+    }
   })
   parts.push('</svg>')
   return parts.join('\n')
@@ -234,6 +245,58 @@ const title = await page.evaluate(async () => {
 
 writeFileSync(OUT + 'title.svg', constructionSvg(title, 1200, 12, 0.76))
 console.log(`title.svg         ${title.items.length}図形 rmse=${title.rmse.toFixed(4)}`)
+
+/* ------------------------------------------------------------------ */
+/* 1e. Example: モネ《睡蓮》を混成5000図形で構成していく様子              */
+/* ------------------------------------------------------------------ */
+
+const example = await page.evaluate(async () => {
+  const { Model } = await import('/src/core/model.ts')
+  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+  const { outlinePoints, rotEllipsePoints } = await import('/src/core/shapes.ts')
+  const { rgbToHex } = await import('/src/core/color.ts')
+
+  const blob = await (await fetch('/docs/assets/example-src.avif')).blob()
+  const bmp = await createImageBitmap(blob)
+  const scale = 448 / Math.max(bmp.width, bmp.height)
+  const w = Math.round(bmp.width * scale)
+  const h = Math.round(bmp.height * scale)
+  const s = document.createElement('canvas')
+  s.width = w
+  s.height = h
+  const sg = s.getContext('2d', { willReadFrequently: true })
+  sg.drawImage(bmp, 0, 0, w, h)
+  const pixels = sg.getImageData(0, 0, w, h).data
+
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    steps: 5000,
+    alpha: 128,
+    shapes: ['triangle', 'ellipse', 'circle', 'bezier', 'regular'],
+    polygonSides: [5, 6, 7],
+    sizeMin: 0.008,
+    sizeMax: 0.22,
+    randomTries: 40,
+    hillClimbAge: 16,
+    seed: 25,
+  }
+  const model = new Model(w, h, pixels, cfg)
+  while (model.records.length < cfg.steps) {
+    if (!model.step()) break
+  }
+  const itemOf = (r) => {
+    const k = r.shape.k
+    const p = r.shape.p
+    const base = { fill: rgbToHex(r.color), op: r.alpha / 255 }
+    if (k === 'circle') return { ...base, circle: [p[0], p[1], p[2]] }
+    if (k === 'ellipse') return { ...base, ellipse: [p[0], p[1], p[2], p[3]] }
+    if (k === 'rotellipse') return { ...base, pts: rotEllipsePoints(p, 40) }
+    return { ...base, pts: outlinePoints(r.shape) }
+  }
+  return { w, h, bg: rgbToHex(model.bg), rmse: model.score, items: model.records.map(itemOf) }
+})
+writeFileSync(OUT + 'example.svg', constructionSvg(example, 1200, 18, 0.85))
+console.log(`example.svg       ${example.items.length}図形 rmse=${example.rmse.toFixed(4)}`)
 
 /* ------------------------------------------------------------------ */
 /* 1c. デモボタン: ボタン画像もプリミティブ近似で作り、<a> で包んで使う   */
@@ -547,11 +610,11 @@ const divider = await page.evaluate(async () => {
   // 細い帯に大きめの三角形を少なめに置き、切り絵のテクスチャを見せる
   const cfg = {
     ...DEFAULT_CONFIG,
-    steps: 70,
+    steps: 40,
     alpha: 150,
     shapes: ['triangle'],
-    sizeMin: 0.012,
-    sizeMax: 0.05,
+    sizeMin: 0.02,
+    sizeMax: 0.08,
     randomTries: 48,
     hillClimbAge: 18,
     seed: 13,

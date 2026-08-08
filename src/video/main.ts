@@ -66,6 +66,7 @@ const el = {
   age: $<HTMLInputElement>('age'),
   refitAge: $<HTMLInputElement>('refitAge'),
   seed: $<HTMLInputElement>('seed'),
+  seedShuffle: $<HTMLInputElement>('seedShuffle'),
   run: $<HTMLButtonElement>('run'),
   reset: $<HTMLButtonElement>('reset'),
   outW: $<HTMLInputElement>('outW'),
@@ -442,6 +443,7 @@ function resetRun() {
 
 async function start() {
   if (!state.videoFile || state.extracting) return
+  if (el.seedShuffle.checked) el.seed.value = String(1 + Math.floor(Math.random() * 1e9))
   const cfg = readConfig()
   runCfgJson = JSON.stringify(cfg)
   el.run.disabled = true

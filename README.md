@@ -34,6 +34,18 @@
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />
 
+## Example
+
+<p align="center">
+  <img src="docs/assets/example.svg" width="100%" alt="モネ《睡蓮》が5000個の図形で構成されていくアニメーション" />
+</p>
+<p align="center"><sub>
+クロード・モネ《睡蓮》(パブリックドメイン)を、三角形・楕円・円・ベジェ曲線・正多角形(5/6/7角)の混成
+<b>5000図形</b>で構成していく様子(ループ再生)
+</sub></p>
+
+<img src="docs/assets/divider.svg" width="100%" alt="" />
+
 ## アルゴリズム
 
 各ステップで 1 図形を確定させる。
