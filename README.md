@@ -37,11 +37,16 @@
 ## Example
 
 <p align="center">
-  <img src="docs/assets/example.svg" width="100%" alt="モネ《睡蓮》が5000個の図形で構成されていくアニメーション" />
+  <img src="docs/assets/example-1.svg" width="24%" alt="モネ《睡蓮》 4000図形" />
+  <img src="docs/assets/example-2.svg" width="24%" alt="ゴッホ《星月夜》 固定パレット4色 12000図形" />
+  <img src="docs/assets/example-3.svg" width="24%" alt="林檎 3500図形" />
+  <img src="docs/assets/example-4.svg" width="24%" alt="ルピナスの湖畔 4500図形" />
 </p>
 <p align="center"><sub>
-クロード・モネ《睡蓮》(パブリックドメイン)を、三角形・楕円・円・ベジェ曲線・正多角形(5/6/7角)の混成
-<b>5000図形</b>で構成していく様子(ループ再生)
+すべて Kasane の出力(構成過程をループ再生)。左から:
+モネ《睡蓮》(三角形・楕円・円・ベジェ・正多角形の混成 4000図形) ／
+ゴッホ《星月夜》(固定パレット4色・α101・12000図形) ／
+林檎(円・楕円中心 3500図形) ／ ルピナスの湖畔(ベジェ曲線入り 4500図形)
 </sub></p>
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />

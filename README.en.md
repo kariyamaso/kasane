@@ -40,11 +40,16 @@ rendered semi-transparently on top of each other.
 ## Example
 
 <p align="center">
-  <img src="docs/assets/example.svg" width="100%" alt="Monet's Water Lilies being assembled from 5000 shapes" />
+  <img src="docs/assets/example-1.svg" width="24%" alt="Monet, Water Lilies — 4000 shapes" />
+  <img src="docs/assets/example-2.svg" width="24%" alt="Van Gogh, The Starry Night — 4-color fixed palette, 12000 shapes" />
+  <img src="docs/assets/example-3.svg" width="24%" alt="Apple — 3500 shapes" />
+  <img src="docs/assets/example-4.svg" width="24%" alt="Lakeside lupins — 4500 shapes" />
 </p>
 <p align="center"><sub>
-Claude Monet's <i>Water Lilies</i> (public domain) assembled from <b>5000 shapes</b> —
-a mix of triangles, ellipses, circles, Bézier strokes, and regular polygons (5/6/7 sides), replayed in a loop
+All four are Kasane's own output, replaying their construction in a loop. Left to right:
+Monet's <i>Water Lilies</i> (mixed shapes, 4000) ／
+Van Gogh's <i>The Starry Night</i> (4-color fixed palette, α101, 12000) ／
+an apple (circle/ellipse-heavy, 3500) ／ lakeside lupins (with Bézier strokes, 4500)
 </sub></p>
 
 <img src="docs/assets/divider.svg" width="100%" alt="" />

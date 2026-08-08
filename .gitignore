@@ -5,3 +5,5 @@ patent/
 .DS_Store
 *.local
 .vite/
+# ライセンス画像(Getty)のためコミットしない。再生成にはローカルに置くこと
+docs/assets/example-lupins.jpg

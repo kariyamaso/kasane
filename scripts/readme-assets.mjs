@@ -44,7 +44,7 @@ const page = await browser.newPage()
 page.on('pageerror', (e) => console.error('pageerror:', e))
 await page.goto(base + '/index.html')
 
-const f = (v) => (Math.round(v * 100) / 100).toString()
+const f = (v) => (Math.round(v * 10) / 10).toString()
 const f4 = (v) => (Math.round(v * 10000) / 10000).toString()
 
 /**
@@ -247,56 +247,106 @@ writeFileSync(OUT + 'title.svg', constructionSvg(title, 1200, 12, 0.76))
 console.log(`title.svg         ${title.items.length}図形 rmse=${title.rmse.toFixed(4)}`)
 
 /* ------------------------------------------------------------------ */
-/* 1e. Example: モネ《睡蓮》を混成5000図形で構成していく様子              */
+/* 1e. Example ギャラリー: 4作品を正方形タイルで構成していく様子          */
 /* ------------------------------------------------------------------ */
 
-const example = await page.evaluate(async () => {
-  const { Model } = await import('/src/core/model.ts')
-  const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
-  const { outlinePoints, rotEllipsePoints } = await import('/src/core/shapes.ts')
-  const { rgbToHex } = await import('/src/core/color.ts')
+// 2枚目(星月夜)はアプリのスクリーンショット設定に準拠:
+// 三角形・矩形(回転)・楕円(回転)・正多角形(5/6)・ベジェ、サイズ1.5〜30%、
+// α101、固定パレット4色。図形数のみ 40000 → 12000(SVG が GitHub の
+// 画像プロキシ上限 ~5MB を超えて表示できなくなるため)。
+const EXAMPLES = [
+  {
+    file: 'example-1.svg',
+    src: '/docs/assets/example-src.avif',
+    cfg: {
+      steps: 4000,
+      alpha: 128,
+      shapes: ['triangle', 'ellipse', 'circle', 'bezier', 'regular'],
+      polygonSides: [5, 6, 7],
+      sizeMin: 0.008,
+      sizeMax: 0.22,
+      seed: 25,
+    },
+  },
+  {
+    file: 'example-2.svg',
+    src: '/docs/assets/example-starry.jpg',
+    cfg: {
+      steps: 12000,
+      alpha: 101,
+      shapes: ['triangle', 'rotrect', 'rotellipse', 'regular', 'bezier'],
+      polygonSides: [5, 6],
+      sizeMin: 0.015,
+      sizeMax: 0.3,
+      seed: 31,
+      color: { mode: 'palette', stops: ['#0b1026', '#c0392b', '#2648d1', '#fdf6e3'], mapping: 'nearest', blend: 0 },
+    },
+  },
+  {
+    file: 'example-3.svg',
+    src: '/docs/assets/example-apple.jpg',
+    cfg: {
+      steps: 3500,
+      alpha: 140,
+      shapes: ['circle', 'ellipse', 'triangle'],
+      sizeMin: 0.01,
+      sizeMax: 0.25,
+      seed: 32,
+    },
+  },
+  {
+    file: 'example-4.svg',
+    src: '/docs/assets/example-lupins.jpg',
+    cfg: {
+      steps: 4500,
+      alpha: 130,
+      shapes: ['triangle', 'bezier', 'rotellipse'],
+      sizeMin: 0.008,
+      sizeMax: 0.2,
+      seed: 33,
+    },
+  },
+]
 
-  const blob = await (await fetch('/docs/assets/example-src.avif')).blob()
-  const bmp = await createImageBitmap(blob)
-  const scale = 448 / Math.max(bmp.width, bmp.height)
-  const w = Math.round(bmp.width * scale)
-  const h = Math.round(bmp.height * scale)
-  const s = document.createElement('canvas')
-  s.width = w
-  s.height = h
-  const sg = s.getContext('2d', { willReadFrequently: true })
-  sg.drawImage(bmp, 0, 0, w, h)
-  const pixels = sg.getImageData(0, 0, w, h).data
+for (const spec of EXAMPLES) {
+  const tile = await page.evaluate(async ({ src, cfg: over }) => {
+    const { Model } = await import('/src/core/model.ts')
+    const { DEFAULT_CONFIG } = await import('/src/core/types.ts')
+    const { outlinePoints, rotEllipsePoints } = await import('/src/core/shapes.ts')
+    const { rgbToHex } = await import('/src/core/color.ts')
 
-  const cfg = {
-    ...DEFAULT_CONFIG,
-    steps: 5000,
-    alpha: 128,
-    shapes: ['triangle', 'ellipse', 'circle', 'bezier', 'regular'],
-    polygonSides: [5, 6, 7],
-    sizeMin: 0.008,
-    sizeMax: 0.22,
-    randomTries: 40,
-    hillClimbAge: 16,
-    seed: 25,
-  }
-  const model = new Model(w, h, pixels, cfg)
-  while (model.records.length < cfg.steps) {
-    if (!model.step()) break
-  }
-  const itemOf = (r) => {
-    const k = r.shape.k
-    const p = r.shape.p
-    const base = { fill: rgbToHex(r.color), op: r.alpha / 255 }
-    if (k === 'circle') return { ...base, circle: [p[0], p[1], p[2]] }
-    if (k === 'ellipse') return { ...base, ellipse: [p[0], p[1], p[2], p[3]] }
-    if (k === 'rotellipse') return { ...base, pts: rotEllipsePoints(p, 40) }
-    return { ...base, pts: outlinePoints(r.shape) }
-  }
-  return { w, h, bg: rgbToHex(model.bg), rmse: model.score, items: model.records.map(itemOf) }
-})
-writeFileSync(OUT + 'example.svg', constructionSvg(example, 1200, 18, 0.85))
-console.log(`example.svg       ${example.items.length}図形 rmse=${example.rmse.toFixed(4)}`)
+    const blob = await (await fetch(src)).blob()
+    const bmp = await createImageBitmap(blob)
+    // 4枚を同じ高さで並べるため、中央の正方形を切り出す
+    const sq = Math.min(bmp.width, bmp.height)
+    const w = 400
+    const s = document.createElement('canvas')
+    s.width = w
+    s.height = w
+    const sg = s.getContext('2d', { willReadFrequently: true })
+    sg.drawImage(bmp, (bmp.width - sq) / 2, (bmp.height - sq) / 2, sq, sq, 0, 0, w, w)
+    const pixels = sg.getImageData(0, 0, w, w).data
+
+    const cfg = { ...DEFAULT_CONFIG, randomTries: 44, hillClimbAge: 16, ...over }
+    if (over.color) cfg.color = { ...DEFAULT_CONFIG.color, ...over.color }
+    const model = new Model(w, w, pixels, cfg)
+    while (model.records.length < cfg.steps) {
+      if (!model.step()) break
+    }
+    const itemOf = (r) => {
+      const k = r.shape.k
+      const p = r.shape.p
+      const base = { fill: rgbToHex(r.color), op: r.alpha / 255 }
+      if (k === 'circle') return { ...base, circle: [p[0], p[1], p[2]] }
+      if (k === 'ellipse') return { ...base, ellipse: [p[0], p[1], p[2], p[3]] }
+      if (k === 'rotellipse') return { ...base, pts: rotEllipsePoints(p, 18) }
+      return { ...base, pts: outlinePoints(r.shape) }
+    }
+    return { w, h: w, bg: rgbToHex(model.bg), rmse: model.score, items: model.records.map(itemOf) }
+  }, spec)
+  writeFileSync(OUT + spec.file, constructionSvg(tile, 600, 16, 0.85))
+  console.log(`${spec.file}     ${tile.items.length}図形 rmse=${tile.rmse.toFixed(4)}`)
+}
 
 /* ------------------------------------------------------------------ */
 /* 1c. デモボタン: ボタン画像もプリミティブ近似で作り、<a> で包んで使う   */
